@@ -10,4 +10,5 @@ common best-practices techniques.
 2. Place 'Phi' folder somewhere accessible to your web server.
   * For example, in the 'public_html/lib' folder.
 3. Include Phi in your PHP script.
-'''require( '/lib/Phi/Phi.php' );
+```php
+require( '/lib/Phi/Phi.php' );
