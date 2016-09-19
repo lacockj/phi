@@ -6,12 +6,14 @@ const IP_REMOTE    = 1;
 const IP_FORWARDED = 2;
 const IP_BOTH      = 3;
 
+private $phi;
 private $routes;
 private $allowedMethods = array( 'OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE' );
 private $defaultRouteMethod = 'GET';
 
 public function __construct ( \Phi $phi ) {
-  self::loadRoutes( $phi );
+  $this->phi = $phi;
+  self::loadRoutes( $phi->ROUTES_INI );
 }
 
 public function routes ( $routes ) {
@@ -19,10 +21,9 @@ public function routes ( $routes ) {
   return $this->routes;
 }
 
-public function loadRoutes ( $phi ) {
+public function loadRoutes ( $routesINI ) {
 
-  $routesINI = $phi->ROUTES_INI;
-  $routesJSON = $phi->TEMP_DIR . "/" . basename( $routesINI, ".ini") . ".json";
+  $routesJSON = $this->phi->TEMP_DIR . "/" . md5( $routesINI );
   //$phi->log( "$routesINI\n$routesJSON\n" );
   //if ( true ) {
   if ( file_exists($routesINI) && !( file_exists($routesJSON) && filectime($routesJSON) >= filectime($routesINI) ) ) {
@@ -70,7 +71,7 @@ public function loadRoutes ( $phi ) {
   }
 }
 
-public function run ( \Phi $phi, $uri=null, $method=null ) {
+public function run ( $uri=null, $method=null ) {
   $debug = false;
   if ( $uri===null ) $uri = self::uri();
   if ( is_string($uri) ) $path = self::path( $uri );
@@ -91,20 +92,20 @@ public function run ( \Phi $phi, $uri=null, $method=null ) {
           } elseif ( $method === 'OPTIONS' ) {
             $routeMethods = array_keys( $here['_m_'] );
             if ( count($routeMethods) === 1 && $routeMethods[0] === '*' ) $routeMethods = $this->allowedMethods;
-            $phi->response->allow( $routeMethods );
+            $this->phi->response->allow( $routeMethods );
           } else {
             $this->lastError = 405;
             $routeMethods = array_keys( $here['_m_'] );
             if ( count($routeMethods) === 1 && $routeMethods[0] === '*' ) $routeMethods = $this->allowedMethods;
-            $phi->response->method_not_allowed( $routeMethods );
+            $this->phi->response->method_not_allowed( $routeMethods );
             return false;
           }
-          if ( $debug ) $phi->log("Checking if $handler is callable...");
+          if ( $debug ) $this->phi->log("Checking if $handler is callable...");
           if ( isset($handler) && is_callable($handler) ) {
-            if ( $debug ) $phi->log("  It is.");
+            if ( $debug ) $this->phi->log("  It is.");
             call_user_func( $handler, $uriParams, $this->input() );
           } else {
-            if ( $debug ) $phi->log("  It isn't.");
+            if ( $debug ) $this->phi->log("  It isn't.");
             $this->lastError = 500;
             return false;
           }

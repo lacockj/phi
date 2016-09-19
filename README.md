@@ -93,6 +93,16 @@ For this example, let's say we want to route all API requests through a single P
   * To specify a different HTTP method, add it in square brackets `[ ]` after the URL pattern.
   * If a route is meant to handle all HTTP methods, add `[*]` to the end of the URL pattern.
 
+**Example File Structure**
+```
+etc/
+  api-routes.ini
+  phi.ini
+public_html/
+  .htaccess
+  api.php
+```
+
 **.htaccess**
 ```
 # Use mod_rewrite

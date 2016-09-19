@@ -22,7 +22,7 @@ class Phi {
   public function __construct ( $configFile=null ) {
 
     # Autoloading
-    $this->addAutoloadDir( dirname( dirname(__FILE__) ) );
+    array_unshift( $this->autoloadDirs, dirname( dirname(__FILE__) ) );
     spl_autoload_register(function($className){
       $classFile = "/" . str_replace("\\", "/", $className) . ".php";
       if ( __NAMESPACE__ ) $classFile = "/" . str_replace("\\", "/", __NAMESPACE__) . $classFile;
@@ -75,14 +75,6 @@ class Phi {
     }
   }
 
-  public function addAutoloadDir ( $dirname, $toFront=false ) {
-    if ( $toFront ) {
-      array_unshift( $this->autoloadDirs, $dirname );
-    } else {
-      array_push( $this->autoloadDirs, $dirname );
-    }
-  }
-
   public function configure ( $configFile=null ) {
 
     # Read config file
@@ -100,10 +92,10 @@ class Phi {
 
     # Auto-load directories
     if ( is_string( $config['AUTOLOAD_DIR'] ) ) {
-      $this->addAutoloadDir( self::pathTo( $config['AUTOLOAD_DIR'] ) );
+      $this->addAutoloadDir( $config['AUTOLOAD_DIR'] );
     } elseif ( is_array( $config['AUTOLOAD_DIR'] ) ) {
       foreach ( $config['AUTOLOAD_DIR'] as $thisDir ) {
-        $this->addAutoloadDir( self::pathTo( $thisDir ) );
+        $this->addAutoloadDir( $thisDir );
       }
     }
 
@@ -117,14 +109,23 @@ class Phi {
 
   }
 
-  public function loadRoutes () {
+  public function addAutoloadDir ( $dirname, $toFront=false ) {
+    if ( $toFront ) {
+      array_unshift( $this->autoloadDirs, self::pathTo( $dirname ) );
+    } else {
+      array_push( $this->autoloadDirs, self::pathTo( $dirname ) );
+    }
+  }
+
+  public function loadRoutes ( $routesIniFile=null ) {
     if ( $this->request === null ) $this->request = new \Phi\Request( $this );
+    if ( file_exists( $routesIniFile ) ) $this->request->loadRoutes( $routesIniFile );
     return $this->request;
   }
 
-  public function run () {
+  public function run ( $uri=null, $method=null ) {
     if ( $this->request === null ) $this->loadRoutes();
-    return $this->request->run( $this );
+    return $this->request->run( $uri, $method );
   }
 
   public function lastError () {
