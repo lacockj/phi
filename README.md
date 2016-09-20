@@ -48,16 +48,17 @@ static function get( $params=array() ){
 
   // If page doesn't exist, log the request and respond with "not found"
   if ( ! file_exists( $page ) ) {
-    \Phi::log( "IP " . \Phi::ip() . " requested non-existant page " . $page );
+    \Phi::log( "IP " . \Phi\Request::ip() . " requested non-existant page " . $page );
     \Phi\Response::status( 404 );
     include "not-found.html";
     return false;
   }
 
-  // For XHR/AJAX requests, respond with partial pages.
+  // For XHR/AJAX requests, respond with partial pages, which I named with ".part" endings.
   if ( \Phi\Request::isXHR() ) {
     $page = $page . ".part";
   }
+  \Phi\Response::content_html();
   include $page;
 
   return true;
