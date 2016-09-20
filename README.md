@@ -41,7 +41,7 @@ SESSION_LIFE = 28800
 ```php
 <?php class Page {
 
-static function get( $params ){
+static function get( $params=array() ){
 
   // Get specified page, or default to "home.php"
   $page = ( array_key_exists( 'page', $params ) ) ? $params['page'] : "home.php";
