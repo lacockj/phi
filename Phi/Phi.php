@@ -123,9 +123,9 @@ class Phi {
     return $this->request;
   }
 
-  public function run ( $uri=null, $method=null ) {
+  public function run ( $uri=null, $method=null, $content=null ) {
     if ( $this->request === null ) $this->loadRoutes();
-    return $this->request->run( $uri, $method );
+    return $this->request->run( $uri, $method, $content );
   }
 
   public function lastError () {

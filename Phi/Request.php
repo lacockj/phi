@@ -9,6 +9,7 @@ const IP_BOTH      = 3;
 private $phi;
 private $routes;
 private $allowedMethods = array( 'OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE' );
+private $acceptPatchHeader = "Accept-Patch: application/merge-patch+json";
 private $defaultRouteMethod = 'GET';
 
 public function __construct ( \Phi $phi ) {
@@ -62,20 +63,28 @@ public function loadRoutes ( $routesINI ) {
     }
     //echo "put: ", json_encode( file_put_contents( $routesJSON, json_encode($this->routes) ) ), "\n";
     file_put_contents( $routesJSON, json_encode($this->routes) );
+    return true;
   }
   elseif ( file_exists($routesJSON) ) {
     //echo "Loading from JSON<br>";
     $this->routes = json_decode( file_get_contents( $routesJSON ), true );
+    return true;
   } else {
-    throw new \Exception('Routes config file does not exist.');
+    return false;
   }
 }
 
-public function run ( $uri=null, $method=null ) {
+public function run ( $uri=null, $method=null, $input=null ) {
   $debug = false;
-  if ( $uri===null ) $uri = self::uri();
+  if ( ! $this->routes ) throw new \Exception('Request router run before loading routes.');
+  if ( $uri === null ) {
+    $uri = $this->uri();
+    $method = $this->method();
+    $input = $this->input();
+  } elseif ( $method===null ) {
+    $method = "GET";
+  }
   if ( is_string($uri) ) $path = self::path( $uri );
-  if ( $method===null ) $method = self::method();
   $method = strtoupper( $method );
   $uriParams = array();
   $here = &$this->routes;
@@ -103,7 +112,7 @@ public function run ( $uri=null, $method=null ) {
           if ( $debug ) $this->phi->log("Checking if $handler is callable...");
           if ( isset($handler) && is_callable($handler) ) {
             if ( $debug ) $this->phi->log("  It is.");
-            call_user_func( $handler, $uriParams, $this->input() );
+            call_user_func( $handler, $uriParams, $input );
           } else {
             if ( $debug ) $this->phi->log("  It isn't.");
             $this->lastError = 500;
@@ -128,6 +137,7 @@ public function run ( $uri=null, $method=null ) {
       }
     }
   }
+  return true;
 }
 
 /**
@@ -205,20 +215,20 @@ public static function input () {
   $method = $_SERVER['REQUEST_METHOD'];
   $contentType = self::headers('Content-Type');
   if ( strpos( $contentType, "application/json" ) !== false ) {
-    $params = json_decode( file_get_contents("php://input"), true );
+    $content = json_decode( file_get_contents("php://input"), true );
   } else {
     if ( $method === "GET" ) {
-      $params = $_GET;
+      $content = $_GET;
     } elseif ( $method === "POST" ) {
-      $params = $_POST;
+      $content = $_POST;
     } else {
-      $params = $_REQUEST;
+      $content = $_REQUEST;
     }
   }
   if ( get_magic_quotes_gpc() ) {
-    $params = self::stripslashes_deep( $params );
+    $content = self::stripslashes_deep( $content );
   }
-  return $params;
+  return $content;
 }
 
 protected static function stripslashes_deep ( $value ) {
