@@ -9,7 +9,6 @@ const IP_BOTH      = 3;
 private $phi;
 private $routes;
 private $allowedMethods = array( 'OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE' );
-private $acceptPatchHeader = "Accept-Patch: application/merge-patch+json";
 private $defaultRouteMethod = 'GET';
 
 public function __construct ( \Phi $phi ) {
@@ -24,17 +23,17 @@ public function routes ( $routes ) {
 
 public function loadRoutes ( $routesINI ) {
 
-  $routesJSON = $this->phi->TEMP_DIR . "/" . md5( $routesINI );
-  //$phi->log( "$routesINI\n$routesJSON\n" );
+  $routesSER = $this->phi->TEMP_DIR . "/" . md5( $routesINI );
+  //$this->phi->log( "$routesINI\n$routesSER\n" );
   //if ( true ) {
-  if ( file_exists($routesINI) && !( file_exists($routesJSON) && filectime($routesJSON) >= filectime($routesINI) ) ) {
-    //echo "Loading from INI<br>";
+  if ( file_exists($routesINI) && !( file_exists($routesSER) && filectime($routesSER) >= filectime($routesINI) ) ) {
+    //$this->phi->log_json( "Loading from INI" );
     $this->routes = array(
       '_m_' => array(),
       '_r_' => array()
     );
-    $preRoutes = parse_ini_file( $routesINI );
-    //$phi->log_json( $preRoutes );
+    $preRoutes = parse_ini_file( $routesINI, true );
+    //$this->phi->log_json( $preRoutes );
     foreach ( $preRoutes as $route => $handler ) {
       $here = &$this->routes;
       $path = self::path( $route );
@@ -61,30 +60,26 @@ public function loadRoutes ( $routesINI ) {
         }
       }
     }
-    //echo "put: ", json_encode( file_put_contents( $routesJSON, json_encode($this->routes) ) ), "\n";
-    file_put_contents( $routesJSON, json_encode($this->routes) );
-    return true;
+    //$this->phi->log_json( $this->routes );
+    file_put_contents( $routesSER, serialize($this->routes) );
   }
-  elseif ( file_exists($routesJSON) ) {
-    //echo "Loading from JSON<br>";
-    $this->routes = json_decode( file_get_contents( $routesJSON ), true );
-    return true;
+  elseif ( file_exists($routesSER) ) {
+    //$this->phi->log_json( "Loading compiled routes" );
+    //$serializedRoutes = file_get_contents( $routesSER );
+    //$this->phi->log( $serializedRoutes );
+    //$this->routes = unserialize( $serializedRoutes );
+    $this->routes = unserialize( file_get_contents( $routesSER ) );
+    //$this->phi->log_json( $this->routes );
   } else {
-    return false;
+    throw new \Exception('Routes config file does not exist.');
   }
 }
 
-public function run ( $uri=null, $method=null, $input=null ) {
+public function run ( $uri=null, $method=null ) {
   $debug = false;
-  if ( ! $this->routes ) throw new \Exception('Request router run before loading routes.');
-  if ( $uri === null ) {
-    $uri = $this->uri();
-    $method = $this->method();
-    $input = $this->input();
-  } elseif ( $method===null ) {
-    $method = "GET";
-  }
+  if ( $uri===null ) $uri = self::uri();
   if ( is_string($uri) ) $path = self::path( $uri );
+  if ( $method===null ) $method = self::method();
   $method = strtoupper( $method );
   $uriParams = array();
   $here = &$this->routes;
@@ -112,7 +107,7 @@ public function run ( $uri=null, $method=null, $input=null ) {
           if ( $debug ) $this->phi->log("Checking if $handler is callable...");
           if ( isset($handler) && is_callable($handler) ) {
             if ( $debug ) $this->phi->log("  It is.");
-            call_user_func( $handler, $uriParams, $input );
+            call_user_func( $handler, $uriParams, $this->input() );
           } else {
             if ( $debug ) $this->phi->log("  It isn't.");
             $this->lastError = 500;
@@ -137,7 +132,6 @@ public function run ( $uri=null, $method=null, $input=null ) {
       }
     }
   }
-  return true;
 }
 
 /**
@@ -215,20 +209,20 @@ public static function input () {
   $method = $_SERVER['REQUEST_METHOD'];
   $contentType = self::headers('Content-Type');
   if ( strpos( $contentType, "application/json" ) !== false ) {
-    $content = json_decode( file_get_contents("php://input"), true );
+    $params = json_decode( file_get_contents("php://input"), true );
   } else {
     if ( $method === "GET" ) {
-      $content = $_GET;
+      $params = $_GET;
     } elseif ( $method === "POST" ) {
-      $content = $_POST;
+      $params = $_POST;
     } else {
-      $content = $_REQUEST;
+      $params = $_REQUEST;
     }
   }
   if ( get_magic_quotes_gpc() ) {
-    $content = self::stripslashes_deep( $content );
+    $params = self::stripslashes_deep( $params );
   }
-  return $content;
+  return $params;
 }
 
 protected static function stripslashes_deep ( $value ) {

@@ -12,6 +12,7 @@ class Phi {
   private $autoloadDirs = array();
   private $request = null;
   private $response = null;
+  private $db = null;
   private $session = null;
   private $auth = null;
 
@@ -64,9 +65,14 @@ class Phi {
         return $this->session;
         break;
 
+      case "db":
+      case "database":
+        $this->db = new \Phi\Database("../etc/phi-db-phish.ini");
+        return $this->db;
+        break;
+
       case "auth":
-        $db = new \Phi\Database("../etc/db_demo.ini");
-        if ( $this->auth === null ) $this->auth = new \Phi\Auth( $this, $db );
+        if ( $this->auth === null ) $this->auth = new \Phi\Auth( $this );
         return $this->auth;
         break;
 
@@ -123,9 +129,9 @@ class Phi {
     return $this->request;
   }
 
-  public function run ( $uri=null, $method=null, $content=null ) {
+  public function run ( $uri=null, $method=null ) {
     if ( $this->request === null ) $this->loadRoutes();
-    return $this->request->run( $uri, $method, $content );
+    return $this->request->run( $uri, $method );
   }
 
   public function lastError () {

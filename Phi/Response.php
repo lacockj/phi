@@ -100,15 +100,7 @@ public static function asType ( $type, $data, $code=200, $text=null) {
 public static function json ( $data, $code=200, $text="", $headers=null ) {
   header("HTTP/1.1 $code $text");
   header('Content-type: application/json');
-  if ( $headers ) {
-    if ( is_string($headers) ) {
-      header( $headers );
-    } elseif ( is_array($headers) ) {
-      foreach ( $headers as $key => $value ) {
-        header( trim($key) . ": " . trim($value) );
-      }
-    }
-  }
+  if ( $headers ) self::headers( $headers );
   if ( is_object( $data ) && get_class( $data ) === "Phi\Datastream" ) {
     ob_start( null, 1048576 );
     echo '[';
