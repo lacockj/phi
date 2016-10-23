@@ -12,14 +12,38 @@
     $this->db = $this->phi->db;
   }
 
-  public function logIn ( $user, $pass ) {
-    $this->user = $this->getUser( $user );
-    if ( password_verify( $pass, $this->user['pass'] ) ) {
-      $this->session['USER'] = $this->user;
-      return true;
-    } else {
-      unset( $this->session['USER'] );
-      return false;
+  public function challenge ( $realm="standard" ) {
+    if ( !( is_string($realm) && $realm ) ) throw new \Exception( "Realm must be a string." );
+    $this->phi->response->status( 401 );
+    $this->phi->response->headers( 'WWW-Authenticate: Phi realm="' . $realm . '"' );
+  }
+
+  public function logIn () {
+    $authorization = $this->phi->request->headers('Authorization');
+    $authScheme = self::strpop( $authorization );
+    switch ( strtolower($authScheme) ) {
+      case "phi":
+        $credentials = base64_decode( $authorization );
+        $user = self::strpop( $credentials, ":" );
+        $pass = $credentials;
+        $this->user = $this->getUser( $user );
+        # Verify User's Credentials
+        if ( $this->user ) {
+          if ( password_verify( $pass, $this->user['pass'] ) ) {
+            $this->session['USER'] = $this->user;
+            return true;
+          } else {
+            return false;
+          }
+        }
+        # Simulate Verifying Non-user's Credentials
+        else {
+          password_hash( "User doesn't exist, but don't tell anyone.", PASSWORD_DEFAULT );
+          return false;
+        }
+        break;
+      default:
+        return false;
     }
   }
 
@@ -52,6 +76,13 @@
     return false;
   }
 
-}
+  # Utility Functions #
 
-?>
+  private static function strpop ( &$str, $sep=" " ) {
+    $pos = strpos( $str, $sep );
+    $pop = substr( $str, 0, $pos );
+    $str = substr( $str, $pos+1 );
+    return $pop;
+  }
+
+}?>

@@ -85,9 +85,31 @@ public function run ( $uri=null, $method=null ) {
   $here = &$this->routes;
   if ( is_array($path) ) {
     for ( $i=0, $c=count($path); $i<=$c; $i++ ) {
+      if ( $debug ) $this->phi->log( "Node $i of $c" );
+
+      # Comparing nodes of defined routes with request path.
+      if ( $i < $c ) {
+        if ( $debug ) $this->phi->log( "Node Value: " . $path[$i] );
+        if ( array_key_exists( '_r_', $here ) && array_key_exists( $path[$i], $here['_r_'] ) ) {
+          if ( $debug ) $this->phi->log( "- named route" );
+          $here = &$here['_r_'][$path[$i]];
+        } elseif ( array_key_exists( '_r_', $here ) && array_key_exists( '*', $here['_r_'] ) ) {
+          if ( $debug ) $this->phi->log( "- wild route" );
+          $here = &$here['_r_']['*'];
+          if ( array_key_exists( '_v_', $here ) ) {
+            $uriParams[$here['_v_']] = $path[$i];
+          }
+        } else {
+          if ( $debug ) $this->phi->log( "- no route" );
+          $this->phi->response->status( 404 );
+          $this->lastError = 404;
+          return false;
+        }
+      }
 
       # End of request path.
-      if ( $i === $c ) {
+      else {
+        if ( $debug ) $this->phi->log( "Method: " . $method );
         if ( array_key_exists('_m_', $here) ) {
           if ( array_key_exists($method, $here['_m_']) ) {
             $handler = $here['_m_'][$method];
@@ -113,23 +135,14 @@ public function run ( $uri=null, $method=null ) {
             $this->lastError = 500;
             return false;
           }
+        } else {
+          if ( $debug ) {
+            $this->phi->log( "Method not found." );
+            $this->phi->log_json( $here );
+          }
         }
       }
 
-      # Comparing nodes of defined routes with request path.
-      else {
-        if ( array_key_exists( '_r_', $here ) && array_key_exists( $path[$i], $here['_r_'] ) ) {
-          $here = &$here['_r_'][$path[$i]];
-        } elseif ( array_key_exists( '_r_', $here ) && array_key_exists( '*', $here['_r_'] ) ) {
-          $here = &$here['_r_']['*'];
-          if ( array_key_exists( '_v_', $here ) ) {
-            $uriParams[$here['_v_']] = $path[$i];
-          }
-        } else {
-          $this->lastError = 404;
-          return false;
-        }
-      }
     }
   }
 }

@@ -67,15 +67,7 @@ public static function not_modified ( $mtime, $etag="", $maxAge=0 ) {
 
 public static function no_content ( $code=204, $text="", $headers=null ) {
   header("HTTP/1.1 $code $text");
-  if ( $headers ) {
-    if ( is_string($headers) ) {
-      header( $headers );
-    } elseif ( is_array($headers) ) {
-      foreach ( $headers as $key => $value ) {
-        header( trim($key) . ": " . trim($value) );
-      }
-    }
-  }
+  if ( $headers ) self::headers( $headers );
 }
 
 public static function asType ( $type, $data, $code=200, $text=null) {

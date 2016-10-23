@@ -58,6 +58,10 @@ public function offsetGet ( $offset ) {
   return isset( $this->_data[$offset] ) ? $this->_data[$offset] : null;
 }
 
+public function toArray () {
+  return $this->_data;
+}
+
 public function array_copy ( array $original ) {
   $copy = array();
   foreach( $original as $key => $val ) {
