@@ -109,7 +109,6 @@ public static function json ( $data, $code=200, $text="", $headers=null ) {
 
 public static function csv ( $data, $code=200, $statusText=null ) {
   if ( is_array( $data ) ) {
-    #$f3 = \Base::instance();
     header("HTTP/1.1 $code $statusText");
     header('Content-type: text/csv');
     if (! is_array($data[0]) ) $data = array( $data );
