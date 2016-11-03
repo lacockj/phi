@@ -16,7 +16,7 @@ Into this: `/users/12345`
 
 Clean URLs look better for webpage addresses, and are easier to use and understand for APIs. Phi can extract parameters from the URL for use in your code, like the user ID in the example above.
 
-You create a list of URL patterns and request methods, and map them to whatever function or class method you want to handle the request. When a request matches a listed patter, the handler function is called, passing along the URL parameters and any other input.
+You create a list of URL patterns and request methods, and map them to whatever function or class method you want to handle the request. When a request matches a listed pattern, the handler function is called, receiving the URL parameters and input data. Input data could be GET query parameters, POST form data, or php://input.
 
 ```
 /users         [POST]  = Users::createNewUser
@@ -24,7 +24,7 @@ You create a list of URL patterns and request methods, and map them to whatever 
 /users/@userID [PATCH] = Users::updateUser
 ```
 
-Phi automatically responds to requests that don't match a URL pattern with the appropriate "404" status code. Similarly, an unexpected request method automatically gets a "405" Method Not Allowed status code and the "Allow:" response header with a list of the methods you do have in the list, in accordance with [RFC 2616].
+Phi automatically responds to requests that don't match a URL pattern with the appropriate "404" Not Found status code. Similarly, an unexpected request method automatically gets a "405" Method Not Allowed status code and the `Allow:` response header with a list of the methods you do have in the list, in accordance with [RFC 2616].
 
 ---
 
@@ -40,7 +40,7 @@ if ( $myDataArray ) {
 }
 ```
 
-Using the headers and status codes makes it easier for your API's consumers to know when a request succeded or failed, and handle the response appropriately. All this information is already part of the HTTP definition, why not use it?
+Using the headers and status codes makes it easier for your API's consumers to know when a request succeded or failed, and handle the response appropriately. All this information is already part of the [HTTP definition][RFC 2616], why not use it?
 
 ---
 
