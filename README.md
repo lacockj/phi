@@ -59,6 +59,7 @@ foreach ( $cities as $city ) {
 }
 ```
 
+Impact to the script's speed is minimal; the results are not all loaded into memory at once but as they are accessed, which is especially useful for very large result sets. There is no loss of security using Phi's convenient query method, and it greatly improves the code readability.
 
 
 [RFC 2616]: https://www.w3.org/Protocols/rfc2616/rfc2616.html
