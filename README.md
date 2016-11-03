@@ -26,4 +26,40 @@ You create a list of URL patterns and request methods, and map them to whatever 
 
 Phi automatically responds to requests that don't match a URL pattern with the appropriate "404" status code. Similarly, an unexpected request method automatically gets a "405" Method Not Allowed status code and the "Allow:" response header with a list of the methods you do have in the list, in accordance with [RFC 2616].
 
+---
+
+## Response Formatting
+
+Provide more context to your script's output. In one line of code, you can set the status code, status text, content type, and output your data in the selected format.
+
+```
+if ( $myDataArray ) {
+  $phi->response->json( $myDataArray );  // Defaults to status 200 "OK"
+} else {
+  $phi->response->no_content( 204, "No data for the selected resource" );  // Custom status text
+}
+```
+
+Using the headers and status codes makes it easier for your API's consumers to know when a request succeded or failed, and handle the response appropriately. All this information is already part of the HTTP definition, why not use it?
+
+---
+
+## Database Queries
+
+Databases are probably the most useful, and at the same time most troublesome tools in your web service. There is a constant struggle between making each request as fast as possible, and as secure as possible.
+
+The number one best thing you can do to secure your database is use [parameterized queries][PHP mysqli]. But this normally requires a five step process to prepare the query, bind the query parameters, execute the query, bind the result variables, and then fetch and use the results.
+
+With Phi, you can execute a parameterized database query in one line of code. Better still, you get back a result you can iterate like an array.
+
+```
+$cities = $phi->db->pq( 'SELECT * FROM `Cities` WHERE `population` > ?', $userInputPopulation );
+foreach ( $cities as $city ) {
+  ...
+}
+```
+
+
+
 [RFC 2616]: https://www.w3.org/Protocols/rfc2616/rfc2616.html
+[PHP mysqli]: https://php.net/manual/en/mysqli.prepare.php
