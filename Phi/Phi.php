@@ -4,7 +4,7 @@ public $errors = array();
 
 private $TEMP_DIR = "/com.lakehawksolutions.Phi";
 private $SESSION_LIFE = 43200; # 12 hours
-private $ROUTES_INI = "/routes.ini";
+private $ROUTES_INI = null;
 private $DB_CONFIG = null;
 private $AUTH_CONFIG = null;
 
@@ -107,9 +107,11 @@ public function configure ( $configFile=null ) {
   }
 
   # Use full, real paths
-  $this->ROUTES_INI = self::pathTo( $this->ROUTES_INI );
-  $this->TEMP_DIR = sys_get_temp_dir() . $this->TEMP_DIR;
-  if (! is_dir( $this->TEMP_DIR ) ) mkdir( $this->TEMP_DIR, 0777, true );
+  if ( is_string( $this->ROUTES_INI ) ) {
+    $this->ROUTES_INI = self::pathTo( $this->ROUTES_INI );
+    $this->TEMP_DIR = sys_get_temp_dir() . $this->TEMP_DIR;
+    if (! is_dir( $this->TEMP_DIR ) ) mkdir( $this->TEMP_DIR, 0777, true );
+  }
 
   # Start Session
   if ( $this->session === null ) $this->session = new \Phi\Session( $this->SESSION_LIFE );

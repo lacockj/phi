@@ -1,4 +1,4 @@
-<?php namespace Phi; class Datastream implements \Iterator {
+<?php namespace Phi; class Datastream implements \Iterator, \JsonSerializable {
 
 # Properties #
 
@@ -75,6 +75,23 @@ function current() {
 
 function key() {
   return $this->position;
+}
+
+
+# JsonSerializable Interface Methods #
+
+function jsonSerialize() {
+  $this->stmt->store_result();
+  $allRows = array();
+  while ( $this->stmt->fetch() ) {
+    $thisRow = array();
+    foreach ( $this->row as $key => $value ) {
+      $thisRow[$key] = $value;
+    }
+    $allRows[] = $this->_revertFields( $thisRow );
+  }
+  $this->stmt->data_seek( 0 );
+  return $allRows;
 }
 
 

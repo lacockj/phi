@@ -5,6 +5,7 @@
 public $errors = array();
 
 protected $safeFunctions = array("CURRENT_TIMESTAMP()", "NOW()");
+protected $storeResult = false;
 
 /**
  * Connect to a database.
@@ -53,6 +54,10 @@ function __construct () {
     $this->errors[] = "Error loading character set utf8: " . $this->error;
   }
 
+}
+
+public function storeResult ( $storeResult=true ) {
+  $this->storeResult = (bool)$storeResult;
 }
 
 public function lastError () {
@@ -116,6 +121,9 @@ public function pq ( $sql, $params=null, $types=null ) {
       'error' => $this->error
     );
     return false;
+  }
+  if ( $this->storeResult ) {
+    $stmt->store_result();
   }
 
   # Return results based on query type. #
