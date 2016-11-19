@@ -1,3 +1,5 @@
-"scripts": {
+{
+  "scripts": {
     "test": "grunt travis -v"
+  }
 }
