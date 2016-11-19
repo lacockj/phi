@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/brianoflan/phi.svg?branch=master)](https://travis-ci.org/brianoflan/phi)
+
 # Phi
 
 Phi is a fast, easy-to-use PHP framework that endeavors to be the perfect balance between the _speed_ of core PHP functions, the _convenience_ of class methods, and _security_ of coding best-practices. Phi includes methods for request routing, database queries, authentication, and response formatting.
