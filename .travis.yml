@@ -10,4 +10,4 @@ php:
 install: 
   - composer install --no-interaction --prefer-source
 script:
-  - phploc Phi
+  - vendor/phploc/phploc/phploc Phi
