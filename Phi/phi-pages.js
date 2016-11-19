@@ -57,7 +57,7 @@ phi.doc = {
       }
     }
   }
-}
+};
 
 $(document).ready(function(){
   $('a').on('click', phi.doc.anchorClickHandler);
