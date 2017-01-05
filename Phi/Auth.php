@@ -50,6 +50,14 @@ public function challenge ( $realm="standard" ) {
 }
 
 public function logIn () {
+
+  # Verify same origin (XSS protection)
+  if ( ! $this->phi->request->isSameOrigin() ) {
+    $this->phi->response->status( 404 );
+    return false;
+  }
+
+  # Decode and verify Authorization header
   $authorization = $this->phi->request->headers('Authorization');
   $authScheme = \Phi::strpop( $authorization );
   switch ( strtolower($authScheme) ) {
@@ -61,14 +69,14 @@ public function logIn () {
       # Verify User's Credentials
       if ( $this->user ) {
         if ( password_verify( $pass, $this->user[ $this->TABLE['PASS'] ] ) ) {
-          $this->session['sessionUser'] = $this->user;
+          $this->session['phiSessionUser'] = $this->user;
           return true;
         } else {
           $this->phi->log("Failed login attempt by ".$this->user[ $this->TABLE['USER'] ]);
           return false;
         }
       }
-      # Simulate Verifying Non-user's Credentials
+      # Pretend To Verify Nonexistant User's Credentials
       else {
         password_hash( "UserID doesn't exist, but don't reveal that fact.", PASSWORD_DEFAULT );
         return false;
@@ -80,16 +88,16 @@ public function logIn () {
 }
 
 public function logOut () {
-  if ( isset( $this->session['sessionUser'] ) ) unset( $this->session['sessionUser'] );
+  if ( isset( $this->session['phiSessionUser'] ) ) unset( $this->session['phiSessionUser'] );
   return true;
 }
 
 public function inSession () {
-  return ( isset( $this->session['sessionUser'] ) ) ? true : false;
+  return ( isset( $this->session['phiSessionUser'] ) ) ? true : false;
 }
 
 public function sessionUser () {
-  return ( isset( $this->session['sessionUser'] ) ) ? $this->session['sessionUser'] : false;
+  return ( isset( $this->session['phiSessionUser'] ) ) ? $this->session['phiSessionUser'] : false;
 }
 
 public function loggedIn () {
@@ -104,8 +112,8 @@ public function loggedIn () {
 }
 
 public function getUser ( $userID ) {
-  $datastream = $this->db->pq( 'SELECT * FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
-  return ( $datastream ) ? $datastream->fetch_assoc() : false;
+  $result = $this->db->pq( 'SELECT * FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
+  return ( $result ) ? $result->fetch_assoc() : false;
 }
 
 }?>

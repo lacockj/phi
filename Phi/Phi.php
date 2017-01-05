@@ -4,7 +4,7 @@ public $errors = array();
 
 private $TEMP_DIR = "/com.lakehawksolutions.Phi";
 private $SESSION_LIFE = 43200; # 12 hours
-private $ROUTES_INI = null;
+private $ROUTES_INI = "/routes.ini";
 private $DB_CONFIG = null;
 private $AUTH_CONFIG = null;
 
@@ -15,6 +15,7 @@ private $response = null;
 private $db = null;
 private $session = null;
 private $auth = null;
+private $file = null;
 
 /**
  * Constructor
@@ -66,6 +67,7 @@ public function __get ( $name ) {
       return $this->response;
 
     case "session":
+      if ( $this->session === null ) $this->session = new \Phi\Session( $this->SESSION_LIFE );
       return $this->session;
 
     case "db":
@@ -76,6 +78,10 @@ public function __get ( $name ) {
     case "auth":
       if ( $this->auth === null ) $this->auth = new \Phi\Auth( $this, $this->AUTH_CONFIG );
       return $this->auth;
+
+    case "file":
+      if ( $this->file === null ) $this->file = new \Phi\File();
+      return $this->file;
 
     default:
       return null;
@@ -112,9 +118,6 @@ public function configure ( $configFile=null ) {
     $this->TEMP_DIR = sys_get_temp_dir() . $this->TEMP_DIR;
     if (! is_dir( $this->TEMP_DIR ) ) mkdir( $this->TEMP_DIR, 0777, true );
   }
-
-  # Start Session
-  if ( $this->session === null ) $this->session = new \Phi\Session( $this->SESSION_LIFE );
 
 }
 

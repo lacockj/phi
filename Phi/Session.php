@@ -1,9 +1,12 @@
 <?php namespace Phi; class Session implements \ArrayAccess {
 
 private $_id = null;
+private $_check = null;
 private $_data = null;
 
 public function __construct ( $sessionlife ) {
+  global $phi;
+  $sessionlife = (int)$sessionlife;
   session_set_cookie_params(
     0,     # Session life (to be overridden by setcookie)
     '/',   # All paths
@@ -15,16 +18,15 @@ public function __construct ( $sessionlife ) {
   session_start();
   setcookie(session_name(),session_id(),time()+$sessionlife);
   $this->_id = session_id();
-  $this->_data = \Phi::array_copy( $_SESSION );
+  $this->_check = ( array_key_exists( 'phiCheck', $_SESSION ) ) ? $_SESSION['phiCheck'] : time();
+  $this->_data = ( array_key_exists( 'phiData', $_SESSION ) ) ? unserialize( $_SESSION['phiData'] ) : array();
   session_write_close();
 }
 
 public function __destruct () {
   @session_start();
-  session_unset();
-  foreach ( $this->_data as $key => $val ) {
-    $_SESSION[$key] = $val;
-  }
+  $_SESSION['phiCheck'] = time();
+  $_SESSION['phiData'] = serialize( $this->_data );
   session_write_close();
 }
 

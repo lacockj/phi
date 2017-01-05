@@ -65,32 +65,32 @@ public static function not_modified ( $mtime, $etag="", $maxAge=0 ) {
 
 # Response Formatting Methods #
 
-public static function no_content ( $code=204, $text="", $headers=null ) {
-  header("HTTP/1.1 $code $text");
+public static function no_content ( $code=204, $reason="", $headers=null ) {
+  self::status( $code, $reason );
   if ( $headers ) self::headers( $headers );
 }
 
-public static function asType ( $type, $data, $code=200, $text=null) {
+public static function asType ( $type, $data, $code=200, $reason=null) {
   switch ( strtolower( $type ) ) {
 
     case 'csv':
-      \Output::csv( $data, $code, $text );
+      \Output::csv( $data, $code, $reason );
       break;
 
     case 'json':
-      \Output::json( $data, $code, $text );
+      \Output::json( $data, $code, $reason );
       break;
 
     case 'html':
     case 'htm':
-      self::htmlTableRows( $data, $code, $text );
+      self::htmlTableRows( $data, $code, $reason );
       break;
 
   }
 }
 
-public static function json ( $data, $code=200, $text="", $headers=null ) {
-  header("HTTP/1.1 $code $text");
+public static function json ( $data, $code=200, $reason="", $headers=null ) {
+  self::status( $code, $reason );
   header('Content-type: application/json');
   if ( $headers ) self::headers( $headers );
   if ( is_object( $data ) && get_class( $data ) === "Phi\Datastream" ) {
@@ -107,9 +107,9 @@ public static function json ( $data, $code=200, $text="", $headers=null ) {
   }
 }
 
-public static function csv ( $data, $code=200, $statusText=null ) {
+public static function csv ( $data, $code=200, $reason=null ) {
   if ( is_array( $data ) ) {
-    header("HTTP/1.1 $code $statusText");
+    self::status( $code, $reason );
     header('Content-type: text/csv');
     if (! is_array($data[0]) ) $data = array( $data );
     $keys = array_keys( $data[0] );
@@ -122,8 +122,8 @@ public static function csv ( $data, $code=200, $statusText=null ) {
   }
 }
 
-public static function text ( $text, $code=200, $statusText="" ) {
-  header("HTTP/1.1 $code $statusText");
+public static function text ( $text, $code=200, $reason="" ) {
+  self::status( $code, $reason );
   header('Content-type: text/plain');
   if (is_scalar($text)) {
     echo $text;
@@ -132,15 +132,15 @@ public static function text ( $text, $code=200, $statusText="" ) {
   }
 }
 
-public static function html ( $html="", $code=200, $statusText="" ) {
-  header("HTTP/1.1 $code $statusText");
+public static function html ( $html="", $code=200, $reason="" ) {
+  self::status( $code, $reason );
   header('Content-type: text/html');
   echo $html;
 }
 
 public static function htmlTableRows ( $data, $code=200, $text="" ) {
   if ( is_array( $data ) ) {
-    header("HTTP/1.1 $code $text");
+    self::status( $code, $reason );
     header('Content-type: text/html');
     if (! is_array($data[0]) ) $data = array( $data );
     $keys = array_keys( $data[0] );

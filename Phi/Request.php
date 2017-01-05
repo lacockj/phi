@@ -160,6 +160,55 @@ public static function headers ( $key=null ) {
 }
 
 /**
+ * Get Request Source Origin.
+ * @return {string} The source origin.
+ */
+public static function sourceOrigin () {
+
+  # Prefer 'Origin' Header Field
+  $origin = self::headers( 'Origin' );
+  if ( $origin ) {
+    if ( preg_match( '/^https?\:\/\/([^\/]+)/', $origin, $matches ) ) {
+      $origin = $matches[1];
+    }
+    return $origin;
+  }
+
+  # Parse 'Referer' Header Field
+  $referer = self::headers( 'Referer' );
+  if ( preg_match( '/^https?\:\/\/([^\/]+)/', $referer, $matches ) ) {
+    $origin = $matches[1];
+  } else {
+    $origin = null;
+  }
+
+  return $origin;
+}
+
+/**
+ * Get Request Target Origin.
+ * @return {string} The target origin.
+ */
+public static function targetOrigin () {
+  # Use 'X-Forwarded-Host' Header Field, if present
+  $target = self::headers( 'X-Forwarded-Host' );
+  if ( $target ) return $target;
+  # Default to 'Host' Header Field
+  return self::headers( 'Host' );
+}
+
+/**
+ * Verify Request Source Origin Matches Target Origin.
+ * A step toward protecting against Cross-Site Scripting (XSS).
+ * @return {bool} Request source and target origins match.
+ */
+public static function isSameOrigin () {
+  $source = self::sourceOrigin();
+  $target = self::targetOrigin();
+  return ( $source !== null && $target !== null && $source === $target );
+}
+
+/**
  * Get the IP address of the incoming request
  * @return {string} The IP address.
  */
