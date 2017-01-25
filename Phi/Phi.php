@@ -4,11 +4,12 @@ public $errors = array();
 
 private $TEMP_DIR = "/com.lakehawksolutions.Phi";
 private $SESSION_LIFE = 43200; # 12 hours
+private $ROUTE_BASE = "";
 private $ROUTES_INI = "/routes.ini";
 private $DB_CONFIG = null;
 private $AUTH_CONFIG = null;
 
-private $configurable = array( 'SESSION_LIFE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG' );
+private $configurable = array( 'SESSION_LIFE', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG' );
 private $autoloadDirs = array();
 private $request = null;
 private $response = null;
@@ -23,8 +24,13 @@ private $file = null;
  */
 public function __construct ( $configFile=null ) {
 
-  # Autoloading
-  array_unshift( $this->autoloadDirs, dirname( dirname(__FILE__) ) );
+  # Standard Autoload Directories
+  $this->autoloadDirs = array(
+    dirname( dirname(__FILE__) ), # Same as Phi
+    self::pathTo( "." )           # Same as Execution
+  );
+
+  # Register Autoloader
   spl_autoload_register(function($className){
     $classFile = "/" . str_replace("\\", "/", $className) . ".php";
     if ( __NAMESPACE__ ) $classFile = "/" . str_replace("\\", "/", __NAMESPACE__) . $classFile;
@@ -54,6 +60,12 @@ public function __get ( $name ) {
 
     case "tempDir":
       return $this->TEMP_DIR;
+
+    case "autoloadDirs":
+      return $this->autoloadDirs;
+
+    case "routeBase":
+      return $this->ROUTE_BASE;
 
     case "routesINI":
       return $this->ROUTES_INI;
@@ -104,11 +116,13 @@ public function configure ( $configFile=null ) {
   }
 
   # Auto-load directories
-  if ( is_string( $config['AUTOLOAD_DIR'] ) ) {
-    $this->addAutoloadDir( $config['AUTOLOAD_DIR'] );
-  } elseif ( is_array( $config['AUTOLOAD_DIR'] ) ) {
-    foreach ( $config['AUTOLOAD_DIR'] as $thisDir ) {
-      if ( is_string( $thisDir ) ) $this->addAutoloadDir( $thisDir );
+  if ( array_key_exists( 'AUTOLOAD_DIR', $config ) ) {
+    if ( is_string( $config['AUTOLOAD_DIR'] ) ) {
+      $this->addAutoloadDir( $config['AUTOLOAD_DIR'] );
+    } elseif ( is_array( $config['AUTOLOAD_DIR'] ) ) {
+      foreach ( $config['AUTOLOAD_DIR'] as $thisDir ) {
+        if ( is_string( $thisDir ) ) $this->addAutoloadDir( $thisDir );
+      }
     }
   }
 
@@ -129,9 +143,9 @@ public function addAutoloadDir ( $dirname, $toFront=false ) {
   }
 }
 
-public function loadRoutes ( $routesIniFile=null ) {
+public function loadRoutes ( $routesIniFile=null, $routeBase="" ) {
   if ( $this->request === null ) $this->request = new \Phi\Request( $this );
-  if ( file_exists( $routesIniFile ) ) $this->request->loadRoutes( $routesIniFile );
+  if ( file_exists( $routesIniFile ) ) $this->request->loadRoutes( $routesIniFile, $routeBase );
   return $this->request;
 }
 
@@ -145,7 +159,11 @@ public function lastError () {
 }
 
 public static function pathTo ( $relativeFileName ) {
-  return realpath( $_SERVER['DOCUMENT_ROOT'] . "/" . ltrim( $relativeFileName, "/" ) );
+  if ( !empty( $_SERVER['DOCUMENT_ROOT'] ) ) {
+    return realpath( $_SERVER['DOCUMENT_ROOT'] . "/" . ltrim( $relativeFileName, "/" ) );
+  } else {
+    return realpath ( "./" . ltrim( $relativeFileName, "/" ) );
+  }
 }
 
 # Utility Functions #
@@ -183,8 +201,12 @@ public static function all_set () {
 
 # Logging Functions #
 
-public static function log ( $text ) {
-  file_put_contents( 'debug.log', $text.PHP_EOL, FILE_APPEND );
+public static function log ( $text, $overwrite=false ) {
+  if ( $overwrite ) {
+    file_put_contents( 'debug.log', $text.PHP_EOL );
+  } else {
+    file_put_contents( 'debug.log', $text.PHP_EOL, FILE_APPEND );
+  }
 }
 
 public static function log_json ( $data ) {

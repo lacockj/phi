@@ -4,7 +4,11 @@
 
 public $errors = array();
 
-protected $fieldTypes = array( 'bool' => array(), 'json' => array() );
+protected $fieldTypes = array(
+  'bool' => array(),
+  'json' => array(),
+  'exclude' => array()
+);
 
 private $stmt;
 private $position = 0;
@@ -34,6 +38,7 @@ function __construct ( \mysqli_stmt $stmt, array $settings=array() ) {
 
   # Settings
   if ( is_array($settings) && array_key_exists( 'fieldTypes', $settings ) && is_array( $settings['fieldTypes'] ) ) {
+
     if ( array_key_exists( 'bool', $settings['fieldTypes'] ) && is_array( $settings['fieldTypes']['bool'] ) ) {
       $this->fieldTypes['bool'] = $settings['fieldTypes']['bool'];
     } elseif ( is_string( $settings['fieldTypes']['bool'] ) ) {
@@ -51,7 +56,7 @@ function __construct ( \mysqli_stmt $stmt, array $settings=array() ) {
 }
 
 function __destruct () {
-  $this->stmt->close();
+  if ( $this->stmt ) $this->stmt->close();
 }
 
 
@@ -70,7 +75,8 @@ function valid() {
 }
 
 function current() {
-  return $this->_revertFields( $this->row );
+  $this->_revertFields();
+  return $this->row;
 }
 
 function key() {
@@ -97,6 +103,11 @@ function jsonSerialize() {
 
 # MySQLi Statement-like Methods #
 
+public function close () {
+  $this->stmt->close();
+  $this->stmt = null;
+}
+
 public function fetch_row () {
   if ( $this->stmt->fetch() ) {
     $this->_revertFields( $this->row );
@@ -121,7 +132,7 @@ public function fetch_assoc () {
   return false;
 }
 
-public function fetch_all ( $resulttype=MYSQLI_ASSOC) {
+public function fetch_all ( $resulttype=MYSQLI_ASSOC ) {
   $rows = array();
   while ( $this->stmt->fetch() ) {
     $this->_revertFields( $this->row );
@@ -153,7 +164,17 @@ public function addJsonFields ( $fields ) {
   foreach ( $fields as $field ) $this->addJsonField( $field );
 }
 
-private function _revertFields ( $row ) {
+public function addExclusionFields ( $fields ) {
+  if ( is_scalar( $fields ) ) $fields = array( $fields );
+  foreach ( $fields as $field ) {
+    if ( is_string($field) && $field && !in_array( $field, $this->fieldTypes['exclude'] ) ) {
+      $this->fieldTypes['exclude'][] = $field;
+    }
+  }
+}
+
+private function _revertFields ( $row=null ) {
+  if ( $row === null ) $row = &$this->row;
   foreach ( $this->fieldTypes['bool'] as $field ) {
     if ( array_key_exists( $field, $row ) )
       $row[$field] = ( $row[$field] === null ) ? null : (bool)( intval( $row[$field] ) );
@@ -161,6 +182,10 @@ private function _revertFields ( $row ) {
   foreach ( $this->fieldTypes['json'] as $field ) {
     if ( array_key_exists( $field, $row ) )
       $row[$field] = ( $row[$field] !== null ) ? json_decode($row[$field], true) : null;
+  }
+  foreach ( $this->fieldTypes['exclude'] as $field ) {
+    if ( array_key_exists( $field, $row ) )
+      unset($row[$field]);
   }
   return $row;
 }

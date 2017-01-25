@@ -7,6 +7,28 @@ public $errors = array();
 protected $safeFunctions = array("CURRENT_TIMESTAMP()", "NOW()");
 protected $storeResult = false;
 
+public $dbFieldJsTypes = array(
+  'INTEGER'   => 'number',
+  'INT'       => 'number',
+  'SMALLINT'  => 'number',
+  'TINYINT'   => 'number',
+  'MEDIUMINT' => 'number',
+  'BIGINT'    => 'number',
+  'DECIMAL'   => 'number',
+  'NUMERIC'   => 'number',
+  'FLOAT'     => 'number',
+  'DOUBLE'    => 'number',
+  'BIT'       => 'number',
+  'DATE'      => 'date',
+  'DATETIME'  => 'date',
+  'TIMESTAMP' => 'date',
+  'TIME'      => 'date',
+  'CHAR'      => 'string',
+  'VARCHAR'   => 'string',
+  'TEXT'      => 'string',
+  'ENUM'      => 'string'
+);
+
 /**
  * Connect to a database.
  * @param {string} $HOST - Database host address.
@@ -128,19 +150,39 @@ public function pq ( $sql, $params=null, $types=null ) {
 
   # Return results based on query type. #
   $verb = strtoupper( preg_replace( '/^(\w+).*$/s', '$1', $sql ) );
-  if ( $verb === "SELECT" || $verb === "DESCRIBE" ) {
-    return new \Phi\Datastream( $stmt );
-  } elseif ( $verb === "INSERT" ) {
-    # Return the ID of the inserted row. #
-    if ( $stmt->insert_id ) {
-      return $stmt->insert_id;
-    } elseif ( $stmt->affected_rows ) {
-      return true;
-    }
+  switch ( $verb ) {
 
-  } else {
+    # Return Datastream of SELECTed data. #
+    case "SELECT":
+    case "SHOW":
+    case "DESCRIBE":
+      return new \Phi\Datastream( $stmt );
+      break;
+
+    # Return the ID of the inserted row. #
+    case "INSERT":
+      if ( $stmt->insert_id ) {
+        return $stmt->insert_id;
+      } elseif ( $stmt->affected_rows ) {
+        return true;
+      }
+      break;
+
     # Return the number of rows affected by UPDATE, or DELETE. #
-    return $stmt->affected_rows;
+    case "UPDATE":
+    case "DELETE":
+      return $stmt->affected_rows;
+      break;
+
+    # Return true for CREATE and DROP because if it didn't work it would have errored at execute step. #
+    case "CREATE":
+    case "DROP":
+      return true;
+      break;
+
+    # Default to returning the mysqli_stmt object. #
+    default:
+      return $stmt;
   }
 }
 

@@ -13,10 +13,27 @@ private $defaultRouteMethod = 'GET';
 
 public function __construct ( \Phi $phi ) {
   $this->phi = $phi;
-  self::loadRoutes( $phi->routesINI );
+  self::loadRoutes( $phi->routesINI, $phi->routeBase );
 }
 
-public function loadRoutes ( $routesINI ) {
+  /**
+ * Magic property getter
+ * Waits to instanciate object classes until needed.
+ * @param {string} $name - The property to get.
+ * @return {mixed}       - The property's value.
+ */
+public function __get ( $name ) {
+  switch ( $name ) {
+
+    case "routes":
+      return $this->routes;
+
+    default:
+      return null;
+  }
+}
+
+public function loadRoutes ( $routesINI, $routeBase="" ) {
   $debug = false;
   $routesSER = $this->phi->tempDir . "/" . md5( $routesINI );
 
@@ -28,7 +45,7 @@ public function loadRoutes ( $routesINI ) {
 
       # URI Path Nodes #
       $here = &$this->routes;
-      $path = self::path( $route );
+      $path = self::path( rtrim( $routeBase, "/" ) . "/" . ltrim( $route, "/" ) );
       foreach ( $path as $node ) {
         if ( $node ) {
           if ( !array_key_exists('_r_', $here) ) $here['_r_'] = array();
@@ -47,11 +64,17 @@ public function loadRoutes ( $routesINI ) {
       # Specific-Mathod Handlers #
       if ( is_array($handler) ) {
         foreach ( $handler as $method => $methodHandler ) {
+          if ( strpos( $methodHandler, "->" ) ) { // not false nor 0
+            $methodHandler = explode( "->", $methodHandler );
+          }
           $here['_m_'][$method] = $methodHandler;
         }
       }
       # All-Methods Handler #
       else {
+        if ( strpos( $handler, "->" ) ) { // not false nor 0
+          $handler = explode( "->", $handler );
+        }
         $here['_m_']['@'] = $handler;
       }
     }
@@ -131,14 +154,34 @@ public function run ( $uri=null, $method=null ) {
     $this->phi->response->method_not_allowed( $routeMethods );
     return false;
   }
-  if ( $debug ) $this->phi->log("Checking if $handler is callable...");
-  if ( isset($handler) && is_callable($handler) ) {
-    if ( $debug ) $this->phi->log("  It is.");
-    call_user_func( $handler, $uriParams, $this->input() );
-  } else {
-    if ( $debug ) $this->phi->log("  It isn't.");
-    $this->lastError = 500;
-    return false;
+  # Class/Method Handler #
+  if ( is_array( $handler ) ) {
+    if ( $debug ) $this->phi->log("Handler is a (class,method) array...");
+    try {
+      $classInstance = new $handler[0]( $this->phi );
+    } catch (Exception $e) {
+      $this->phi->log( "Error creating new instance of class " . $handler[0] );
+      $this->phi->response->no_content( 500 );
+      $this->lastError = 500;
+      return false;
+    }
+    if ( ! method_exists( $classInstance, $handler[1] ) ) {
+      $this->phi->log( 'Error: Method "' . $handler[1] . '" does not exist in class "' . $handler[0] . '"' );
+      $this->phi->response->no_content( 500 );
+      $this->lastError = 500;
+      return false;
+    }
+    $classInstance->$handler[1]( $uriParams, $this->input() );
+  }
+  # Static Function Handler #
+  else {
+    if ( $debug ) $this->phi->log("Checking if $handler is callable...");
+    if ( isset($handler) && is_callable($handler) ) {
+      call_user_func( $handler, $this->phi, $uriParams, $this->input() );
+    } else {
+      $this->lastError = 500;
+      return false;
+    }
   }
 
 }
