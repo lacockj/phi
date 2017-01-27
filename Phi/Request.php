@@ -272,6 +272,14 @@ public static function isAJAX () {
   return self::isXHR();
 }
 
+public static function isHTTPS () {
+  return ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === "on" );
+}
+
+public static function isSSL () {
+  return self::isHTTPS();
+}
+
 /**
  * Get the request method (aka. verb)
  * @return {string} The request method.

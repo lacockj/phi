@@ -1,6 +1,7 @@
 <?php namespace Phi; class Auth {
 
-private $TABLE = array(
+protected $REQUIRE_HTTPS = true;
+protected $TABLE = array(
   'NAME' => 'users',
   'USER' => 'userID',
   'PASS' => 'hashedPassword'
@@ -22,6 +23,9 @@ public function __construct ( \Phi $phi, $config ) {
     }
     if ( isset($config['TABLE']) && $phi->all_set( $config['TABLE'], 'NAME', 'USER', 'PASS' ) ) {
       $this->TABLE = $config['TABLE'];
+    }
+    if ( isset($config['REQUIRE_HTTPS']) ) {
+      $this->REQUIRE_HTTPS = (bool) $config['REQUIRE_HTTPS'];
     }
   }
 }
@@ -49,36 +53,28 @@ public function challenge ( $realm="standard" ) {
   $this->phi->response->headers( 'WWW-Authenticate: Phi realm="' . $realm . '"' );
 }
 
-public function logIn () {
+//public function newUser
 
-  # Verify same origin (XSS protection)
-  if ( ! $this->phi->request->isSameOrigin() ) {
-    $this->phi->response->status( 404 );
-    return false;
-  }
-
-  # Decode and verify Authorization header
+public function checkAuthorization () {
   $authorization = $this->phi->request->headers('Authorization');
   $authScheme = \Phi::strpop( $authorization );
   switch ( strtolower($authScheme) ) {
     case "phi":
       $credentials = base64_decode( $authorization );
-      $user = \Phi::strpop( $credentials, ":" );
+      $username = \Phi::strpop( $credentials, ":" );
       $pass = $credentials;
-      $this->user = $this->getUser( $user );
+      $user = $this->getUser( $username );
       # Verify User's Credentials
-      if ( $this->user ) {
-        if ( password_verify( $pass, $this->user[ $this->TABLE['PASS'] ] ) ) {
-          $this->session['phiSessionUser'] = $this->user;
-          return true;
+      if ( $user ) {
+        if ( password_verify( $pass, $user[ $this->TABLE['PASS'] ] ) ) {
+          return $user;
         } else {
-          $this->phi->log("Failed login attempt by ".$this->user[ $this->TABLE['USER'] ]);
           return false;
         }
       }
       # Pretend To Verify Nonexistant User's Credentials
       else {
-        password_hash( "UserID doesn't exist, but don't reveal that fact.", PASSWORD_DEFAULT );
+        password_verify( 'Missing User', '$2a$08$nqWza8jri7gZmOKYubrLrOVbEZTbEzXnbkJ.ad/2.RlbsbMQxPVO.' );
         return false;
       }
       break;
@@ -87,23 +83,46 @@ public function logIn () {
   }
 }
 
-public function logOut () {
-  if ( isset( $this->session['phiSessionUser'] ) ) unset( $this->session['phiSessionUser'] );
-  return true;
+public function checkConnectionSecurity () {
+  return ( ( $this->REQUIRE_HTTPS ? $this->phi->request->isHTTPS() : true ) && $this->phi->request->isSameOrigin() );
+}
+
+public function getUser ( $userID ) {
+  $result = $this->db->pq( 'SELECT * FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
+  return ( $result ) ? $result->fetch_assoc() : false;
 }
 
 public function inSession () {
   return ( isset( $this->session['phiSessionUser'] ) ) ? true : false;
 }
 
-public function sessionUser () {
-  return ( isset( $this->session['phiSessionUser'] ) ) ? $this->session['phiSessionUser'] : false;
+public function isAuthorized () {
+  if ( ! $this->checkConnectionSecurity() ) return false;
+  return ( $this->loggedIn() || $this->checkAuthorization() );
+}
+
+public function logIn () {
+
+  if ( ! $this->checkConnectionSecurity() ) return false;
+
+  # Check 'Authorization' field in request header
+  $user = $this->checkAuthorization();
+  # Good: Start session
+  if ( $user ) {
+    $this->user = $user;
+    $this->session['phiSessionUser'] = $this->user;
+    return true;
+  # Bad: No session change
+  } else {
+    $this->phi->log("Failed login attempt by ".$this->user[ $this->TABLE['USER'] ]);
+    return false;
+  }
 }
 
 public function loggedIn () {
   $sessionUser = $this->sessionUser();
-  if ( $sessionUser && isset( $sessionUser['id'] ) ) {
-    $this->user = $this->getUser( $sessionUser['id'] );
+  if ( $sessionUser && isset( $sessionUser[ $this->TABLE['USER'] ] ) ) {
+    $this->user = $this->getUser( $sessionUser[ $this->TABLE['USER'] ] );
     if ( isset( $sessionUser[ $this->TABLE['PASS'] ] ) && $sessionUser[ $this->TABLE['PASS'] ] === $this->user[ $this->TABLE['PASS'] ] ) {
       return $sessionUser;
     }
@@ -111,9 +130,13 @@ public function loggedIn () {
   return false;
 }
 
-public function getUser ( $userID ) {
-  $result = $this->db->pq( 'SELECT * FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
-  return ( $result ) ? $result->fetch_assoc() : false;
+public function logOut () {
+  if ( isset( $this->session['phiSessionUser'] ) ) unset( $this->session['phiSessionUser'] );
+  return true;
+}
+
+public function sessionUser () {
+  return ( isset( $this->session['phiSessionUser'] ) ) ? $this->session['phiSessionUser'] : false;
 }
 
 }?>
