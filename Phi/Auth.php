@@ -14,7 +14,7 @@ private $user;
 
 public function __construct ( \Phi $phi, $config ) {
   $this->phi = $phi;
-  $this->session = $this->phi->session;
+  $this->session = &$this->phi->session;
   if ( isset($config) ) {
     if ( isset($config['DB']) && $phi->all_set( $config['DB'], 'HOST', 'USER', 'PASS', 'NAME' ) ) {
       $this->db = new \Phi\Database( $config['DB'] );
@@ -55,8 +55,12 @@ public function challenge ( $realm="standard" ) {
 
 //public function newUser
 
+/**
+ * @return {bool|null} - Returns TRUE is "Authorization" header is valid, FALSE if it is invalid, or NULL if it is missing.
+ */
 public function checkAuthorization () {
   $authorization = $this->phi->request->headers('Authorization');
+  if ( ! $authorization ) return null;
   $authScheme = \Phi::strpop( $authorization );
   switch ( strtolower($authScheme) ) {
     case "phi":
@@ -69,6 +73,7 @@ public function checkAuthorization () {
         if ( password_verify( $pass, $user[ $this->TABLE['PASS'] ] ) ) {
           return $user;
         } else {
+          \Phi::log("Failed login attempt by $username";
           return false;
         }
       }
@@ -87,6 +92,15 @@ public function checkConnectionSecurity () {
   return ( ( $this->REQUIRE_HTTPS ? $this->phi->request->isHTTPS() : true ) && $this->phi->request->isSameOrigin() );
 }
 
+public function createUser ( $userID, $pass ) {
+  $hashword = password_hash( $pass, PASSWORD_DEFAULT );
+  $result = $this->db->pq( 'INSERT INTO `'.$this->TABLE['NAME'].'` (`'.$this->TABLE['USER'].'`,`'.$this->TABLE['PASS'].'`) VALUES (?,?)', array( $userID, $hashword ) );
+  if ( $result === false ) {
+    $this->phi->log_json( $this->db->lastError() );
+  }
+  return (bool) $result;
+}
+
 public function getUser ( $userID ) {
   $result = $this->db->pq( 'SELECT * FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
   return ( $result ) ? $result->fetch_assoc() : false;
@@ -97,8 +111,19 @@ public function inSession () {
 }
 
 public function isAuthorized () {
+  if ( false ) {
+    $this->phi->log( "Security Check:", true );
+    $this->phi->log_json( array(
+      'connectionSecurity' => $this->checkConnectionSecurity(),
+      'authorization'      => $this->checkAuthorization(),
+      'session'            => $this->phi->session->toArray(),
+      'sessionUser'        => $this->sessionUser(),
+      'loggedIn'           => $this->loggedIn()
+    ));
+  }
   if ( ! $this->checkConnectionSecurity() ) return false;
-  return ( $this->loggedIn() || $this->checkAuthorization() );
+  $authorization = $this->checkAuthorization();
+  return ( $authorization === null ) ? $this->loggedIn() : $authorization;
 }
 
 public function logIn () {
@@ -114,7 +139,6 @@ public function logIn () {
     return true;
   # Bad: No session change
   } else {
-    $this->phi->log("Failed login attempt by ".$this->user[ $this->TABLE['USER'] ]);
     return false;
   }
 }
@@ -131,6 +155,7 @@ public function loggedIn () {
 }
 
 public function logOut () {
+  //$this->phi->session->destroy();
   if ( isset( $this->session['phiSessionUser'] ) ) unset( $this->session['phiSessionUser'] );
   return true;
 }

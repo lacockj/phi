@@ -5,7 +5,6 @@ private $_check = null;
 private $_data = null;
 
 public function __construct ( $sessionlife ) {
-  global $phi;
   $sessionlife = (int)$sessionlife;
   session_set_cookie_params(
     0,     # Session life (to be overridden by setcookie)
@@ -16,7 +15,7 @@ public function __construct ( $sessionlife ) {
   );
   session_cache_limiter('');
   session_start();
-  setcookie(session_name(),session_id(),time()+$sessionlife);
+  setcookie(session_name(),session_id(),time()+$sessionlife,"/");
   $this->_id = session_id();
   $this->_check = ( array_key_exists( 'phiCheck', $_SESSION ) ) ? $_SESSION['phiCheck'] : time();
   $this->_data = ( array_key_exists( 'phiData', $_SESSION ) ) ? unserialize( $_SESSION['phiData'] ) : array();
@@ -28,6 +27,19 @@ public function __destruct () {
   $_SESSION['phiCheck'] = time();
   $_SESSION['phiData'] = serialize( $this->_data );
   session_write_close();
+}
+
+public function destroy () {
+  session_start();
+  $_SESSION = array();
+  if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+      $params["path"], $params["domain"],
+      $params["secure"], $params["httponly"]
+    );
+  }
+  session_destroy();
 }
 
 public function id () {

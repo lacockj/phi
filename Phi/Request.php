@@ -220,12 +220,11 @@ public static function sourceOrigin () {
   # Parse 'Referer' Header Field
   $referer = self::headers( 'Referer' );
   if ( preg_match( '/^https?\:\/\/([^\/]+)/', $referer, $matches ) ) {
-    $origin = $matches[1];
-  } else {
-    $origin = null;
+    return $matches[1];
   }
 
-  return $origin;
+  # Fallback Default 'Host' Header Field
+  return self::headers( 'Host' );
 }
 
 /**
