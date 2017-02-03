@@ -73,7 +73,7 @@ public function checkAuthorization () {
         if ( password_verify( $pass, $user[ $this->TABLE['PASS'] ] ) ) {
           return $user;
         } else {
-          \Phi::log("Failed login attempt by $username";
+          \Phi::log("Failed login attempt by $username");
           return false;
         }
       }
