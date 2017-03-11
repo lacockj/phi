@@ -316,21 +316,21 @@ public static function path ( $uri=null ) {
 public static function input () {
   $method = $_SERVER['REQUEST_METHOD'];
   $contentType = self::headers('Content-Type');
-  if ( strpos( $contentType, "application/json" ) !== false ) {
-    $params = json_decode( file_get_contents("php://input"), true );
+  if ( strpos( $contentType, "application/json" ) !== false || strpos( $contentType,  "application/merge-patch+json" ) !== false ) {
+    $input = json_decode( file_get_contents("php://input"), true );
   } else {
     if ( $method === "GET" ) {
-      $params = $_GET;
+      $input = $_GET;
     } elseif ( $method === "POST" ) {
-      $params = $_POST;
+      $input = $_POST;
     } else {
-      $params = $_REQUEST;
+      $input = $_REQUEST;
     }
   }
   if ( get_magic_quotes_gpc() ) {
-    $params = self::stripslashes_deep( $params );
+    $input = self::stripslashes_deep( $input );
   }
-  return $params;
+  return $input;
 }
 
 protected static function stripslashes_deep ( $value ) {

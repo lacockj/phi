@@ -93,15 +93,33 @@ public static function json ( $data, $code=200, $reason="", $headers=null ) {
   self::status( $code, $reason );
   header('Content-type: application/json');
   if ( $headers ) self::headers( $headers );
-  if ( is_object( $data ) && get_class( $data ) === "Phi\Datastream" ) {
-    ob_start( null, 1048576 );
-    echo '[';
-    foreach ( $data as $i => $row ) {
-      if ( $i != 0 ) echo ",";
-      echo json_encode( $row );
+  if ( is_object( $data ) ) {
+    switch ( get_class( $data ) ) {
+
+      case "Phi\Datastream":
+        ob_start( null, 1048576 );
+        echo '[';
+        foreach ( $data as $i => $row ) {
+          if ( $i != 0 ) echo ",";
+          echo json_encode( $row );
+        }
+        echo ']';
+        ob_end_flush();
+        break;
+
+      case "mysqli_result":
+        ob_start( null, 1048576 );
+        echo '[';
+        $i = 0;
+        while ( $row = $data->fetch_assoc() ) {
+          if ( $i != 0 ) echo ",";
+          echo json_encode( $row );
+          $i++;
+        }
+        echo ']';
+        ob_end_flush();
+        break;
     }
-    echo ']';
-    ob_end_flush();
   } else {
     echo json_encode( $data );
   }
