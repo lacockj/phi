@@ -2,7 +2,13 @@
 
 # Phi
 
-Phi is a fast, easy-to-use PHP framework that endeavors to be the perfect balance between the _speed_ of core PHP functions, the _convenience_ of class methods, and _security_ of coding best-practices. Phi includes methods for request routing, database queries, authentication, and response formatting.
+Phi is a fast, easy-to-use micro-framework for PHP that endeavors to be the perfect balance between the _speed_ of core PHP functions, the _convenience_ of class methods, and the _security_ of coding best-practices.
+
+Phi includes handy methods for
+* Request routing
+* Parameterized database queries
+* HTTP authentication
+* Automatic response data formatting
 
 Read the full documentation on the [Phi Wiki](https://github.com/lacockj/phi/wiki)
 
