@@ -316,7 +316,9 @@ public static function path ( $uri=null ) {
 public static function input () {
   $method = $_SERVER['REQUEST_METHOD'];
   $contentType = self::headers('Content-Type');
-  if ( strpos( $contentType, "application/json" ) !== false || strpos( $contentType,  "application/merge-patch+json" ) !== false ) {
+  if ( strpos( $contentType, "application/json" ) !== false
+      || strpos( $contentType, "application/geo+json" ) !== false
+      || strpos( $contentType,  "application/merge-patch+json" ) !== false ) {
     $input = json_decode( file_get_contents("php://input"), true );
   } else {
     if ( $method === "GET" ) {

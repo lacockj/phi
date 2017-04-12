@@ -213,4 +213,40 @@ public static function log_json ( $data ) {
   file_put_contents( 'debug.log', json_encode( $data, JSON_PRETTY_PRINT ).PHP_EOL, FILE_APPEND );
 }
 
+# Fetch contents of URL. #
+public function fetch ( $url, $headers = array() ) {
+  if ( function_exists('curl_init') ) {
+    //use cURL to fetch data
+
+    // Defatult Options //
+    $options = array(
+      CURLOPT_RETURNTRANSFER => true,    // return content
+      CURLOPT_HEADER         => false,   // don't return headers
+      CURLOPT_ENCODING       => "",      // handle all encodings
+      CURLOPT_CONNECTTIMEOUT => 30,      // timeout on connect
+      CURLOPT_TIMEOUT        => 30,      // timeout on response
+      CURLOPT_SSL_VERIFYPEER => false    // Disabled SSL Cert checks
+    );
+    // Custom Options //
+    foreach($headers as $key => $value) {
+      $options[$key] = $value;
+    }
+
+    $ch = curl_init( $url );
+    curl_setopt_array( $ch, $options );
+
+    $response = curl_exec($ch);
+    if ($response === false) {
+      _log("cURL error ".curl_errno($ch)." ".curl_error($ch)." getting $url HTTP code ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
+    }
+    curl_close ($ch);
+    return $response;
+  } else if ( ini_get('allow_url_fopen') ) {
+    //fall back to fopen()
+    $response = file_get_contents($url, 'r');
+    return $response;
+  }
+  return false;
+}
+
 }?>

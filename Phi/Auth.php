@@ -61,6 +61,7 @@ public function checkAuthorization () {
   if ( ! $authorization ) return null;
   $authScheme = \Phi::strpop( $authorization );
   switch ( strtolower($authScheme) ) {
+    case "basic":
     case "phi":
       $credentials = base64_decode( $authorization );
       $username = \Phi::strpop( $credentials, ":" );
@@ -138,9 +139,7 @@ public function isAuthorized () {
 }
 
 public function logIn () {
-
   if ( ! $this->checkConnectionSecurity() ) return false;
-
   # Check 'Authorization' field in request header
   $user = $this->checkAuthorization();
   # Good: Start session

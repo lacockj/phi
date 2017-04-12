@@ -37,17 +37,9 @@ function __construct ( \mysqli_stmt $stmt, array $settings=array() ) {
   }
 
   # Settings
-  if ( is_array($settings) && array_key_exists( 'fieldTypes', $settings ) && is_array( $settings['fieldTypes'] ) ) {
-
-    if ( array_key_exists( 'bool', $settings['fieldTypes'] ) && is_array( $settings['fieldTypes']['bool'] ) ) {
-      $this->fieldTypes['bool'] = $settings['fieldTypes']['bool'];
-    } elseif ( is_string( $settings['fieldTypes']['bool'] ) ) {
-      $this->fieldTypes['bool'] = array( $settings['fieldTypes']['bool'] );
-    }
-    if ( array_key_exists( 'json', $settings['fieldTypes'] ) && is_array( $settings['fieldTypes']['json'] ) ) {
-      $this->fieldTypes['json'] = $settings['fieldTypes']['json'];
-    } elseif ( is_string( $settings['fieldTypes']['json'] ) ) {
-      $this->fieldTypes['json'] = array( $settings['fieldTypes']['json'] );
+  if ( is_array($settings) ) {
+    if ( array_key_exists( 'fieldTypes', $settings ) && is_array( $settings['fieldTypes'] ) ) {
+      $this->fieldTypes( $settings['fieldTypes'] );
     }
   }
 
@@ -171,6 +163,19 @@ public function addExclusionFields ( $fields ) {
       $this->fieldTypes['exclude'][] = $field;
     }
   }
+}
+
+public function fieldTypes ( $newFieldTypes=null ) {
+  if ( is_array( $newFieldTypes ) ) {
+    $allowedFieldTypes = array( 'bool', 'json', 'exclude' );
+    foreach ( $allowedFieldTypes as $thisType ) {
+      if ( array_key_exists( $thisType, $newFieldTypes ) ) {
+        if ( is_array( $newFieldTypes[$thisType] ) ) {
+          $this->fieldTypes[$thisType] = $newFieldTypes[$thisType];
+        } elseif ( is_string( $newFieldTypes[$thisType] ) ) {
+          $this->fieldTypes[$thisType] = array( $newFieldTypes[$thisType] );
+  } } } }
+  return $this->fieldTypes;
 }
 
 private function _revertFields ( $row=null ) {
