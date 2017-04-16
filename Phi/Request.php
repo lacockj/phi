@@ -35,6 +35,10 @@ public function __get ( $name ) {
 
 public function loadRoutes ( $routesINI, $routeBase="" ) {
   $debug = false;
+  if ( !( is_string($routesINI) && $routesINI ) ) {
+    if ( $debug ) $this->phi->log( "Phi\Request::loadRoutes - Invalid routes INI file name." );
+    return false;
+  }
   $routesSER = $this->phi->tempDir . "/" . md5( $routesINI );
 
   # New/Updated Routes INI #
@@ -90,12 +94,18 @@ public function loadRoutes ( $routesINI, $routeBase="" ) {
 
   # No Routes #
   else {
-    throw new \Exception('Routes config file does not exist.');
+    //throw new \Exception('Routes config file does not exist.');
   }
 }
 
 public function run ( $uri=null, $method=null ) {
   $debug = false;
+  if ( ! $this->routes ) {
+    if ( $debug ) $this->phi->log( "- no routes loaded" );
+    $this->phi->response->status( 404 );
+    $this->lastError = 404;
+    return false;
+  }
   if ( $uri===null ) $uri = self::uri();
   if ( is_string($uri) ) $path = self::path( $uri );
   if ( $method===null ) $method = self::method();

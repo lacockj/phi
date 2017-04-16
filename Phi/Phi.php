@@ -5,7 +5,7 @@ public $errors = array();
 private $TEMP_DIR = "/com.lakehawksolutions.Phi";
 private $SESSION_LIFE = 43200; # 12 hours
 private $ROUTE_BASE = "";
-private $ROUTES_INI = "/routes.ini";
+private $ROUTES_INI = "";
 private $DB_CONFIG = null;
 private $AUTH_CONFIG = null;
 
@@ -127,7 +127,7 @@ public function configure ( $configFile=null ) {
   }
 
   # Use full, real paths
-  if ( is_string( $this->ROUTES_INI ) ) {
+  if ( is_string( $this->ROUTES_INI ) && $this->ROUTES_INI ) {
     $this->ROUTES_INI = self::pathTo( $this->ROUTES_INI );
     $this->TEMP_DIR = sys_get_temp_dir() . $this->TEMP_DIR;
     if (! is_dir( $this->TEMP_DIR ) ) mkdir( $this->TEMP_DIR, 0777, true );
@@ -169,9 +169,15 @@ public static function pathTo ( $relativeFileName ) {
 # Utility Functions #
 
 public static function strpop ( &$str, $sep=" " ) {
+  if ( !( is_string($str) && $str ) ) return false;
   $pos = strpos( $str, $sep );
-  $pop = substr( $str, 0, $pos );
-  $str = substr( $str, $pos+1 );
+  if ( $pos === false ) {
+    $pop = $str;
+    $str = "";
+  } else {
+    $pop = substr( $str, 0, $pos );
+    $str = substr( $str, $pos+1 );
+  }
   return $pop;
 }
 
@@ -237,7 +243,7 @@ public function fetch ( $url, $headers = array() ) {
 
     $response = curl_exec($ch);
     if ($response === false) {
-      _log("cURL error ".curl_errno($ch)." ".curl_error($ch)." getting $url HTTP code ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
+      $this->log("cURL error ".curl_errno($ch)." ".curl_error($ch)." getting $url HTTP code ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
     }
     curl_close ($ch);
     return $response;
