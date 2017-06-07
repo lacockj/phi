@@ -45,19 +45,71 @@ public function __get ( $name ) {
   }
 }
 
+/**
+ * Create New User
+ * @param {string} $userID - A unique User ID.
+ * @param {string} $pass   - An initial password for the new User.
+ * @param {array}  $extras - Optional array of key=>value pairs to insert with User record.
+ * @returns {bool} - If the operation succeeded.
+ */
+public function createUser ( $userID, $pass, $extras=null ) {
+  $columns = array(
+    $this->TABLE['USER'],
+    $this->TABLE['PASS']
+  );
+  $placeholders = array("?","?");
+  $values = array(
+    $userID,
+    password_hash( $pass, PASSWORD_DEFAULT )
+  );
+  if ( is_array( $extras ) ) {
+    foreach ( $extras as $key => $value ) {
+      $columns[] = $key;
+      $placeholders[] = "?";
+      $values[] = $value;
+    }
+  }
+  $result = $this->db->pq( 'INSERT INTO `'.$this->TABLE['NAME'].'` (`'.implode('`,`', $columns).'`) VALUES ('.implode(',', $placeholders).')', $values );
+  if ( !$result ) {
+    $this->phi->log_json( $this->db->lastError() );
+  }
+  return (bool) $result;
+}
+
+/**
+ * Get Existing User Record
+ * @param {string} $userID - Unique ID of the User to get.
+ * @returns {array|bool} The User record array, or false if not found.
+ */
+public function getUser ( $userID ) {
+  $result = $this->db->pq( 'SELECT * FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
+  return ( $result ) ? $result->fetch_assoc() : false;
+}
+
+/**
+ * Delete Existing User
+ * @param {string} $userID - Unique ID of the User to delete.
+ * @returns {bool} - If the operation succeeded.
+ */
+public function deleteUser ( $userID ) {
+  $result = $this->db->pq( 'DELETE FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
+  if ( !$result ) {
+    $this->phi->log_json( $this->db->lastError() );
+  }
+  return (bool) $result;
+}
+
 public function challenge ( $realm="standard" ) {
   if ( !( is_string($realm) && $realm ) ) throw new \Exception( "Realm must be a string." );
   $this->phi->response->status( 401 );
   $this->phi->response->headers( 'WWW-Authenticate: Phi realm="' . $realm . '"' );
 }
 
-//public function newUser
-
 /**
  * @return {bool|null} - Returns TRUE is "Authorization" header is valid, FALSE if it is invalid, or NULL if it is missing.
  */
-public function checkAuthorization () {
-  $authorization = $this->phi->request->headers('Authorization');
+public function checkAuthorization ( $authorization=null ) {
+  if ( !$authorization ) $authorization = $this->phi->request->headers('Authorization');
   if ( ! $authorization ) return null;
   $authScheme = \Phi::strpop( $authorization );
   switch ( strtolower($authScheme) ) {
@@ -88,44 +140,7 @@ public function checkAuthorization () {
 }
 
 public function checkConnectionSecurity () {
-  return ( ( $this->REQUIRE_HTTPS ? $this->phi->request->isHTTPS() : true ) && $this->phi->request->isSameOrigin() );
-}
-
-public function createUser ( $userID, $pass, $extras ) {
-  $columns = array(
-    $this->TABLE['USER'],
-    $this->TABLE['PASS']
-  );
-  $placeholders = array("?","?");
-  $values = array(
-    $userID,
-    password_hash( $pass, PASSWORD_DEFAULT )
-  );
-  if ( is_array( $extras ) ) {
-    foreach ( $extras as $key => $value ) {
-      $columns[] = $key;
-      $placeholders[] = "?";
-      $values[] = $value;
-    }
-  }
-  $result = $this->db->pq( 'INSERT INTO `'.$this->TABLE['NAME'].'` (`'.implode('`,`', $columns).'`) VALUES ('.implode(',', $placeholders).')', $values );
-  if ( !$result ) {
-    $this->phi->log_json( $this->db->lastError() );
-  }
-  return (bool) $result;
-}
-
-public function deleteUser ( $userID ) {
-  $result = $this->db->pq( 'DELETE FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
-  if ( !$result ) {
-    $this->phi->log_json( $this->db->lastError() );
-  }
-  return (bool) $result;
-}
-
-public function getUser ( $userID ) {
-  $result = $this->db->pq( 'SELECT * FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
-  return ( $result ) ? $result->fetch_assoc() : false;
+  return ( ( $this->REQUIRE_HTTPS ? $this->phi->request->isHTTPS() : true ) && $this->phi->request->isAllowedOrigin() );
 }
 
 public function inSession () {
@@ -138,10 +153,15 @@ public function isAuthorized () {
   return ( $authorization === null ) ? $this->loggedIn() : $authorization;
 }
 
-public function logIn () {
+public function logIn ( $username=null, $password=null ) {
   if ( ! $this->checkConnectionSecurity() ) return false;
-  # Check 'Authorization' field in request header
-  $user = $this->checkAuthorization();
+  if ( $username && $password ) {
+    # Temp workaround for non-JavaScript login form POST
+    $user = $this->checkAuthorization( "Basic ".base64_encode($username.":".$password) );
+  } else {
+    # Check 'Authorization' field in request header
+    $user = $this->checkAuthorization();
+  }
   # Good: Start session
   if ( $user ) {
     $this->user = $user;
@@ -158,7 +178,8 @@ public function loggedIn () {
   if ( $sessionUser && isset( $sessionUser[ $this->TABLE['USER'] ] ) ) {
     $this->user = $this->getUser( $sessionUser[ $this->TABLE['USER'] ] );
     if ( isset( $sessionUser[ $this->TABLE['PASS'] ] ) && $sessionUser[ $this->TABLE['PASS'] ] === $this->user[ $this->TABLE['PASS'] ] ) {
-      return $sessionUser;
+      $this->phi->session['phiSessionUser'] = $this->user;
+      return $this->user;
     }
   }
   return false;

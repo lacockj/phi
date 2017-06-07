@@ -8,8 +8,9 @@ private $ROUTE_BASE = "";
 private $ROUTES_INI = "";
 private $DB_CONFIG = null;
 private $AUTH_CONFIG = null;
+private $ALLOW_ORIGIN = null;
 
-private $configurable = array( 'SESSION_LIFE', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG' );
+private $configurable = array( 'SESSION_LIFE', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG', 'ALLOW_ORIGIN' );
 private $autoloadDirs = array();
 private $request = null;
 private $response = null;
@@ -17,6 +18,8 @@ private $db = null;
 private $session = null;
 private $auth = null;
 private $file = null;
+
+public $config = array();
 
 /**
  * Constructor
@@ -70,6 +73,9 @@ public function __get ( $name ) {
     case "routesINI":
       return $this->ROUTES_INI;
 
+    case "allowedOrigins":
+      return $this->ALLOW_ORIGIN;
+
     case "request":
       if ( $this->request === null ) $this->loadRoutes();
       return $this->request;
@@ -110,8 +116,11 @@ public function configure ( $configFile=null ) {
 
   # Overwrite defaults
   if ( is_array( $config ) ) {
-    foreach ( $this->configurable as $configVar ) {
-      if ( array_key_exists( $configVar, $config ) ) $this->{$configVar} = $config[$configVar];
+    foreach ( $config as $key => $value ) {
+      $this->config[$key] = $value;
+      if ( in_array( $key, $this->configurable ) ) {
+        $this->{$key} = $value;
+      }
     }
   }
 
@@ -151,6 +160,7 @@ public function loadRoutes ( $routesIniFile=null, $routeBase="" ) {
 
 public function run ( $uri=null, $method=null ) {
   if ( $this->request === null ) $this->loadRoutes();
+  if ( ! $this->request->isAllowedOrigin() ) return false;
   return $this->request->run( $uri, $method );
 }
 

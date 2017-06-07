@@ -6,28 +6,7 @@ public $errors = array();
 
 protected $safeFunctions = array("CURRENT_TIMESTAMP()", "NOW()");
 protected $storeResult = false;
-
-public $dbFieldJsTypes = array(
-  'INTEGER'   => 'number',
-  'INT'       => 'number',
-  'SMALLINT'  => 'number',
-  'TINYINT'   => 'number',
-  'MEDIUMINT' => 'number',
-  'BIGINT'    => 'number',
-  'DECIMAL'   => 'number',
-  'NUMERIC'   => 'number',
-  'FLOAT'     => 'number',
-  'DOUBLE'    => 'number',
-  'BIT'       => 'number',
-  'DATE'      => 'date',
-  'DATETIME'  => 'date',
-  'TIMESTAMP' => 'date',
-  'TIME'      => 'date',
-  'CHAR'      => 'string',
-  'VARCHAR'   => 'string',
-  'TEXT'      => 'string',
-  'ENUM'      => 'string'
-);
+protected $returnDataStream = true;
 
 /**
  * Connect to a database.
@@ -80,6 +59,10 @@ function __construct () {
 
 public function storeResult ( $storeResult=true ) {
   $this->storeResult = (bool)$storeResult;
+}
+
+public function returnDataStream ( $returnDataStream=true ) {
+  $this->returnDataStream = (bool)$returnDataStream;
 }
 
 public function lastError () {
@@ -144,9 +127,6 @@ public function pq ( $sql, $params=null, $types=null ) {
     );
     return false;
   }
-  if ( $this->storeResult ) {
-    $stmt->store_result();
-  }
 
   # Return results based on query type. #
   $verb = strtoupper( preg_replace( '/^(\w+).*$/s', '$1', $sql ) );
@@ -156,7 +136,17 @@ public function pq ( $sql, $params=null, $types=null ) {
     case "SELECT":
     case "SHOW":
     case "DESCRIBE":
-      return new \Phi\Datastream( $stmt );
+      if ( $this->storeResult ) {
+        $stmt->store_result();
+      }
+      $dataStream = new \Phi\Datastream( $stmt );
+      if ( $this->returnDataStream ) {
+        return $dataStream;
+      } else {
+        $data = $dataStream->fetch_all();
+        $dataStream->close();
+        return $data;
+      }
       break;
 
     # Return the ID of the inserted row. #

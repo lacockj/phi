@@ -261,6 +261,28 @@ public static function isSameOrigin () {
 }
 
 /**
+ * Verify Request Source Origin is in Allowed Origin List.
+ * A step toward protecting against Cross-Site Scripting (XSS).
+ * @return {bool} Request source origin is allowed.
+ */
+public function isAllowedOrigin () {
+  $allowedOrigins = $this->phi->allowedOrigins;
+  if ( is_string( $allowedOrigins ) ) $allowedOrigins = array( $allowedOrigins );
+  if ( is_array( $allowedOrigins ) ) {
+    if ( in_array( "*", $allowedOrigins ) ) {
+      $this->phi->response->allow_origin();
+      return true;
+    }
+    $targetOrigin = self::targetOrigin();
+    if ( in_array( $targetOrigin, $allowedOrigins ) ) {
+      $this->phi->response->allow_origin( $targetOrigin );
+      return true;
+    }
+  }
+  return self::isSameOrigin();
+}
+
+/**
  * Get the IP address of the incoming request
  * @return {string} The IP address.
  */

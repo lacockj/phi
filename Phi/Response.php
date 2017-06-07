@@ -48,6 +48,11 @@ public static function content_json () {
   header( "Content-type: application/json" );
 }
 
+public static function allow_origin ( $orgin="*" ) {
+  header( "Access-Control-Allow-Origin: " . $orgin );
+  header( "Access-Control-Allow-Headers: Authorization" );
+}
+
 
 # Cache-Control Methods #
 

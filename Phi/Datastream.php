@@ -178,7 +178,7 @@ public function fieldTypes ( $newFieldTypes=null ) {
   return $this->fieldTypes;
 }
 
-private function _revertFields ( $row=null ) {
+private function _revertFields ( &$row=null ) {
   if ( $row === null ) $row = &$this->row;
   foreach ( $this->fieldTypes['bool'] as $field ) {
     if ( array_key_exists( $field, $row ) )
@@ -189,8 +189,10 @@ private function _revertFields ( $row=null ) {
       $row[$field] = ( $row[$field] !== null ) ? json_decode($row[$field], true) : null;
   }
   foreach ( $this->fieldTypes['exclude'] as $field ) {
-    if ( array_key_exists( $field, $row ) )
+    if ( array_key_exists( $field, $row ) ) {
+      $row[$field] = null;
       unset($row[$field]);
+    }
   }
   return $row;
 }
