@@ -77,6 +77,26 @@ public function createUser ( $userID, $pass, $extras=null ) {
 }
 
 /**
+ * Update User Password
+ * @param {string} $userID - A unique User ID.
+ * @param {string} $pass   - An initial password for the new User.
+ * @returns {bool} - If the operation succeeded.
+ */
+public function updateUserPass ( $userID, $pass ) {
+  $result = $this->db->pq(
+    'UPDATE `'.$this->TABLE['NAME'].'` SET `'.$this->TABLE['PASS'].'`=? WHERE `'.$this->TABLE['USER'].'`=?',
+    array(
+      password_hash( $pass, PASSWORD_DEFAULT ),
+      $userID
+    )
+  );
+  if ( !$result ) {
+    $this->phi->log_json( $this->db->lastError() );
+  }
+  return (bool) $result;
+}
+
+/**
  * Get Existing User Record
  * @param {string} $userID - Unique ID of the User to get.
  * @returns {array|bool} The User record array, or false if not found.
@@ -122,6 +142,7 @@ public function checkAuthorization ( $authorization=null ) {
       # Verify User's Credentials
       if ( $user ) {
         if ( password_verify( $pass, $user[ $this->TABLE['PASS'] ] ) ) {
+          $this->user = $user;
           return $user;
         } else {
           \Phi::log("Failed login attempt by $username");
@@ -164,10 +185,21 @@ public function logIn ( $username=null, $password=null ) {
   }
   # Good: Start session
   if ( $user ) {
-    $this->user = $user;
+    //$this->user = $user;
     $this->phi->session['phiSessionUser'] = $this->user;
     return true;
   # Bad: No session change
+  } else {
+    return false;
+  }
+}
+
+public function forceLogIn ( $username=null ) {
+  $user = $this->getUser( $username );
+  if ( $user ) {
+    $this->user = $user;
+    $this->phi->session['phiSessionUser'] = $this->user;
+    return true;
   } else {
     return false;
   }

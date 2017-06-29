@@ -30,7 +30,7 @@ public function __construct ( $configFile=null ) {
   # Standard Autoload Directories
   $this->autoloadDirs = array(
     dirname( dirname(__FILE__) ), # Same as Phi
-    self::pathTo( "." )           # Same as Execution
+    //self::pathTo( "." )           # Same as Execution
   );
 
   # Register Autoloader
@@ -229,6 +229,7 @@ public static function log_json ( $data ) {
   file_put_contents( 'debug.log', json_encode( $data, JSON_PRETTY_PRINT ).PHP_EOL, FILE_APPEND );
 }
 
+
 # Fetch contents of URL. #
 public function fetch ( $url, $headers = array() ) {
   if ( function_exists('curl_init') ) {
@@ -263,6 +264,31 @@ public function fetch ( $url, $headers = array() ) {
     return $response;
   }
   return false;
+}
+
+
+# Generate a string to random letters (upper and lower-case) and numbers. #
+public static function randomAlphanumeric ($length=1) {
+  $chars = array();
+  for ($i = 0; $i < $length; $i++) {
+    switch (rand(0,2)) {
+      # number
+      case 0:
+        $chars[] = chr(rand(48,57));
+        break;
+
+      # upper-case
+      case 1:
+        $chars[] = chr(rand(65,90));
+        break;
+
+      # lower-case
+      case 2:
+        $chars[] = chr(rand(97,122));
+        break;
+    }
+  }
+  return implode('', $chars);
 }
 
 }?>
