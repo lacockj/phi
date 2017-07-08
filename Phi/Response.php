@@ -177,10 +177,6 @@ public static function htmlTableRows ( $data, $code=200, $text="" ) {
 
 # Data Management Methods #
 
-public static function is_assoc ( $array ) {
-  return is_array($array) ? (bool)count(array_filter(array_keys($array),'is_string')) : false;
-}
-
 public static function csvRow ( $a ) {
   $b = array();
   foreach ( $a as $f ) {

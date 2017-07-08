@@ -31,12 +31,6 @@
     echo '</tbody></table>', PHP_EOL;
   }
 
-  # Data Management Methods #
-
-  static public function is_assoc ( $array ) {
-    return is_array($array) ? (bool)count(array_filter(array_keys($array),'is_string')) : false;
-  }
-
 }
 
 ?>

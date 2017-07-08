@@ -205,6 +205,10 @@ public static function array_copy ( array $original ) {
   return $copy;
 }
 
+public static function is_assoc ( $array ) {
+  return is_array($array) ? (bool)count(array_filter(array_keys($array),'is_string')) : false;
+}
+
 public static function all_set () {
   $args = func_get_args();
   if ( !( count($args) && is_array( $args[0] ) ) ) return null;
