@@ -4,13 +4,13 @@ private $_id = null;
 private $_check = null;
 private $_data = null;
 
-public function __construct ( $sessionlife ) {
+public function __construct ( $sessionlife, $secureOnly=true ) {
   $sessionlife = (int)$sessionlife;
   session_set_cookie_params(
     0,     # Session life (to be overridden by setcookie)
     '/',   # All paths
     '.'.$_SERVER['SERVER_NAME'], # Domain
-    true,  # Cookie only sent over secure connections
+    $secureOnly,  # Cookie only sent over secure connections
     false  # Not only HTTP
   );
   session_cache_limiter('');
@@ -23,6 +23,13 @@ public function __construct ( $sessionlife ) {
 }
 
 public function __destruct () {
+  @session_start();
+  $_SESSION['phiCheck'] = time();
+  $_SESSION['phiData'] = serialize( $this->_data );
+  session_write_close();
+}
+
+public function save () {
   @session_start();
   $_SESSION['phiCheck'] = time();
   $_SESSION['phiData'] = serialize( $this->_data );

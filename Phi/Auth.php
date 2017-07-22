@@ -187,6 +187,7 @@ public function logIn ( $username=null, $password=null ) {
   if ( $user ) {
     //$this->user = $user;
     $this->phi->session['phiSessionUser'] = $this->user;
+    $this->phi->session->save();
     return true;
   # Bad: No session change
   } else {
@@ -199,6 +200,7 @@ public function forceLogIn ( $username=null ) {
   if ( $user ) {
     $this->user = $user;
     $this->phi->session['phiSessionUser'] = $this->user;
+    $this->phi->session->save();
     return true;
   } else {
     return false;
@@ -220,6 +222,7 @@ public function loggedIn () {
 public function logOut () {
   //$this->phi->session->destroy();
   if ( isset( $this->phi->session['phiSessionUser'] ) ) unset( $this->phi->session['phiSessionUser'] );
+  $this->phi->session->save();
   return true;
 }
 

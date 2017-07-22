@@ -85,7 +85,8 @@ public function __get ( $name ) {
       return $this->response;
 
     case "session":
-      if ( $this->session === null ) $this->session = new \Phi\Session( $this->SESSION_LIFE );
+      $secureOnly = ( array_key_exists( 'AUTH_CONFIG', $this->config ) && array_key_exists( 'REQUIRE_HTTPS', $this->config['AUTH_CONFIG'] ) ) ? $this->config['AUTH_CONFIG']['REQUIRE_HTTPS'] : true;
+      if ( $this->session === null ) $this->session = new \Phi\Session( $this->SESSION_LIFE, $secureOnly );
       return $this->session;
 
     case "db":
@@ -203,10 +204,6 @@ public static function array_copy ( array $original ) {
     }
   }
   return $copy;
-}
-
-public static function is_assoc ( $array ) {
-  return is_array($array) ? (bool)count(array_filter(array_keys($array),'is_string')) : false;
 }
 
 public static function all_set () {
