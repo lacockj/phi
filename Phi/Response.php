@@ -124,6 +124,9 @@ public static function json ( $data, $code=200, $reason="", $headers=null ) {
         echo ']';
         ob_end_flush();
         break;
+
+      default:
+        echo json_encode( $data );
     }
   } else {
     echo json_encode( $data );
@@ -221,8 +224,8 @@ public static function sendEventJson ( $data, $event=null, $id=null ) {
   if ($id && is_scalar($id)) echo "id: " . $id . PHP_EOL;
   if ($event && is_scalar($event)) echo "event: " . $event . PHP_EOL;
   echo "data: " . json_encode( $data ) . PHP_EOL . PHP_EOL;
-  ob_end_flush();
-  flush();
+  @ob_end_flush();
+  @flush();
 }
 
 }?>
