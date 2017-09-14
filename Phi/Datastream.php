@@ -5,6 +5,8 @@
 public $errors = array();
 
 protected $fieldTypes = array(
+  'int' => array(),
+  'float' => array(),
   'bool' => array(),
   'json' => array(),
   'exclude' => array()
@@ -167,7 +169,7 @@ public function addExclusionFields ( $fields ) {
 
 public function fieldTypes ( $newFieldTypes=null ) {
   if ( is_array( $newFieldTypes ) ) {
-    $allowedFieldTypes = array( 'bool', 'json', 'exclude' );
+    $allowedFieldTypes = array_keys( $this->fieldTypes );
     foreach ( $allowedFieldTypes as $thisType ) {
       if ( array_key_exists( $thisType, $newFieldTypes ) ) {
         if ( is_array( $newFieldTypes[$thisType] ) ) {
@@ -178,8 +180,16 @@ public function fieldTypes ( $newFieldTypes=null ) {
   return $this->fieldTypes;
 }
 
-private function _revertFields ( &$row=null ) {
+private function _revertFields ( &$row ) {
   if ( $row === null ) $row = &$this->row;
+  foreach ( $this->fieldTypes['int'] as $field ) {
+    if ( array_key_exists( $field, $row ) )
+      $row[$field] = ( $row[$field] === null ) ? null : intval( $row[$field] );
+  }
+  foreach ( $this->fieldTypes['float'] as $field ) {
+    if ( array_key_exists( $field, $row ) )
+      $row[$field] = ( $row[$field] === null ) ? null : floatval( $row[$field] );
+  }
   foreach ( $this->fieldTypes['bool'] as $field ) {
     if ( array_key_exists( $field, $row ) )
       $row[$field] = ( $row[$field] === null ) ? null : (bool)( intval( $row[$field] ) );
@@ -189,10 +199,8 @@ private function _revertFields ( &$row=null ) {
       $row[$field] = ( $row[$field] !== null ) ? json_decode($row[$field], true) : null;
   }
   foreach ( $this->fieldTypes['exclude'] as $field ) {
-    if ( array_key_exists( $field, $row ) ) {
-      $row[$field] = null;
+    if ( array_key_exists( $field, $row ) )
       unset($row[$field]);
-    }
   }
   return $row;
 }
