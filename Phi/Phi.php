@@ -173,7 +173,7 @@ public static function pathTo ( $relativeFileName ) {
   if ( !empty( $_SERVER['DOCUMENT_ROOT'] ) ) {
     return realpath( $_SERVER['DOCUMENT_ROOT'] . "/" . ltrim( $relativeFileName, "/" ) );
   } else {
-    return realpath ( "./" . ltrim( $relativeFileName, "/" ) );
+    return realpath( "./" . ltrim( $relativeFileName, "/" ) );
   }
 }
 
@@ -211,7 +211,18 @@ public static function all_set () {
   if ( !( count($args) && is_array( $args[0] ) ) ) return null;
   $subject = array_shift( $args );
   while ( count($args) ) {
-    if ( empty( $subject[array_shift( $args )] ) ) return false;
+    $comp = array_shift( $args );
+    if ( is_string( $comp ) ) {
+      if ( empty( $subject[$comp] ) ) return false;
+    } elseif ( is_array( $comp ) ) {
+      foreach ( $comp as $subcomp ) {
+        if ( is_string( $subcomp ) ) {
+          if ( empty( $subject[$subcomp] ) ) return false;
+        } else {
+          return null;
+        }
+      }
+    }
   }
   return true;
 }

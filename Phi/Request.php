@@ -100,6 +100,10 @@ public function loadRoutes ( $routesINI, $routeBase="" ) {
 
 public function run ( $uri=null, $method=null ) {
   $debug = false;
+  if ( ! $this->isAllowedOrigin() ) {
+    $this->phi->response->test( "Origin Not Allowed", 403, "Origin Not Allowed" );
+    return false;
+  }
   if ( ! $this->routes ) {
     if ( $debug ) $this->phi->log( "- no routes loaded" );
     $this->phi->response->status( 404 );
