@@ -211,7 +211,11 @@ public function loggedIn () {
   $sessionUser = $this->sessionUser();
   if ( $sessionUser && isset( $sessionUser[ $this->TABLE['USER'] ] ) ) {
     $this->user = $this->getUser( $sessionUser[ $this->TABLE['USER'] ] );
-    if ( isset( $sessionUser[ $this->TABLE['PASS'] ] ) && $sessionUser[ $this->TABLE['PASS'] ] === $this->user[ $this->TABLE['PASS'] ] ) {
+    if (
+      ( $sessionUser[ $this->TABLE['PASS'] ] === null && $this->user[ $this->TABLE['PASS'] ] === null )
+        ||
+      ( isset( $sessionUser[ $this->TABLE['PASS'] ] ) && $sessionUser[ $this->TABLE['PASS'] ] === $this->user[ $this->TABLE['PASS'] ] )
+    ) {
       $this->phi->session['phiSessionUser'] = $this->user;
       return $this->user;
     }
