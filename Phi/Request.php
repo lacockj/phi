@@ -100,10 +100,6 @@ public function loadRoutes ( $routesINI, $routeBase="" ) {
 
 public function run ( $uri=null, $method=null ) {
   $debug = false;
-  if ( ! $this->isAllowedOrigin() ) {
-    $this->phi->response->test( "Origin Not Allowed", 403, "Origin Not Allowed" );
-    return false;
-  }
   if ( ! $this->routes ) {
     if ( $debug ) $this->phi->log( "- no routes loaded" );
     $this->phi->response->status( 404 );
@@ -153,6 +149,7 @@ public function run ( $uri=null, $method=null ) {
   }
 
   # Request Handler #
+  $handler = null;
   if ( array_key_exists($method, $here['_m_']) ) {
     $handler = $here['_m_'][$method];
   } elseif ( array_key_exists('@', $here['_m_']) ) {
@@ -169,23 +166,24 @@ public function run ( $uri=null, $method=null ) {
     return false;
   }
   # Class/Method Handler #
-  if ( is_array( $handler ) ) {
+  if ( $handler && is_array( $handler ) ) {
     if ( $debug ) $this->phi->log("Handler is a (class,method) array...");
     try {
       $classInstance = new $handler[0]( $this->phi );
+      $classMethod = $handler[1];
     } catch (Exception $e) {
       $this->phi->log( "Error creating new instance of class " . $handler[0] );
       $this->phi->response->no_content( 500 );
       $this->lastError = 500;
       return false;
     }
-    if ( ! method_exists( $classInstance, $handler[1] ) ) {
-      $this->phi->log( 'Error: Method "' . $handler[1] . '" does not exist in class "' . $handler[0] . '"' );
+    if ( ! method_exists( $classInstance, $classMethod ) ) {
+      $this->phi->log( 'Error: Method "' . $classMethod . '" does not exist in class "' . $handler[0] . '"' );
       $this->phi->response->no_content( 500 );
       $this->lastError = 500;
       return false;
     }
-    $classInstance->$handler[1]( $uriParams, $this->input() );
+    $classInstance->$classMethod( $uriParams, $this->input() );
   }
   # Static Function Handler #
   else {
@@ -209,8 +207,15 @@ public static function headers ( $key=null ) {
     return getallheaders();
   } else {
     $headers = getallheaders();
-    if ( is_array($headers) && is_string($key) && isset($headers[$key]) ) {
-      return $headers[$key];
+    if ( is_array($headers) && is_string($key) ) {
+      if ( isset($headers[$key]) ) {
+        return $headers[$key];
+      } else {
+        $key = strtolower($key);
+        if ( isset($headers[$key]) ) {
+          return $headers[$key];
+        }
+      }
     }
   }
   return null;
@@ -225,17 +230,17 @@ public static function sourceOrigin () {
   # Prefer 'Origin' Header Field
   $origin = self::headers( 'Origin' );
   if ( $origin ) {
-    if ( preg_match( '/^https?\:\/\/([^\/]+)/', $origin, $matches ) ) {
-      $origin = $matches[1];
-    }
+    //if ( preg_match( '/^https?\:\/\/([^\/]+)/', $origin, $matches ) ) {
+    //  $origin = $matches[1];
+    //}
     return $origin;
   }
 
   # Parse 'Referer' Header Field
   $referer = self::headers( 'Referer' );
-  if ( preg_match( '/^https?\:\/\/([^\/]+)/', $referer, $matches ) ) {
-    return $matches[1];
-  }
+  //if ( preg_match( '/^https?\:\/\/([^\/]+)/', $referer, $matches ) ) {
+  //  return $matches[1];
+  //}
 
   # Fallback Default 'Host' Header Field
   return self::headers( 'Host' );
@@ -273,13 +278,9 @@ public function isAllowedOrigin () {
   $allowedOrigins = $this->phi->allowedOrigins;
   if ( is_string( $allowedOrigins ) ) $allowedOrigins = array( $allowedOrigins );
   if ( is_array( $allowedOrigins ) ) {
-    if ( in_array( "*", $allowedOrigins ) ) {
-      $this->phi->response->allow_origin();
-      return true;
-    }
-    $targetOrigin = self::targetOrigin();
-    if ( in_array( $targetOrigin, $allowedOrigins ) ) {
-      $this->phi->response->allow_origin( $targetOrigin );
+    $origin = self::sourceOrigin();
+    if ( in_array('*', $allowedOrigins) || in_array($origin, $allowedOrigins) ) {
+      $this->phi->response->allow_origin( $origin );
       return true;
     }
   }

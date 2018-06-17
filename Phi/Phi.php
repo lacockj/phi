@@ -49,6 +49,7 @@ public function __construct ( $configFile=null ) {
   # Initial Configuration (all but SESSION_LIFE can be changed later)
   if ( $configFile ) $this->configure( $configFile );
 
+  header( "Access-Control-Allow-Credentials: true" );
 }
 
 /**
@@ -187,7 +188,7 @@ public static function strpop ( &$str, $sep=" " ) {
     $str = "";
   } else {
     $pop = substr( $str, 0, $pos );
-    $str = substr( $str, $pos+1 );
+    $str = substr( $str, $pos+strlen($sep) );
   }
   return $pop;
 }
@@ -244,8 +245,8 @@ public static function log_json ( $data ) {
 
 # Fetch contents of URL. #
 public function fetch ( $url, $headers = array() ) {
+  // Use cURL to fetch data by default
   if ( function_exists('curl_init') ) {
-    //use cURL to fetch data
 
     // Defatult Options //
     $options = array(
@@ -269,9 +270,27 @@ public function fetch ( $url, $headers = array() ) {
       $this->log("cURL error ".curl_errno($ch)." ".curl_error($ch)." getting $url HTTP code ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
     }
     curl_close ($ch);
-    return $response;
-  } else if ( ini_get('allow_url_fopen') ) {
-    //fall back to fopen()
+
+    // Parse response headers if user asked for them.
+    if ( $options[CURLOPT_HEADER] == true ) {
+      $responseHeaders = [];
+      while ( $thisHeader = self::strpop($response, "\r\n") ) {
+        if ( preg_match( '/(\S+)\:\s*(.+)/', $thisHeader, $matches) ) {
+          $responseHeaders[$matches[1]] = $matches[2];
+        } else {
+          $responseHeaders[] = $thisHeader;
+        }
+      }
+      return [
+        'headers' => $responseHeaders,
+        'body'    => $response
+      ];
+    } else {
+      return $response;
+    }
+  }
+  // Fall back to fopen() if cURL is not available
+  else if ( ini_get('allow_url_fopen') ) {
     $response = file_get_contents($url, 'r');
     return $response;
   }

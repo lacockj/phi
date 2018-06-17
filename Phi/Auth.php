@@ -1,4 +1,10 @@
-<?php namespace Phi; class Auth {
+<?php
+
+namespace Phi;
+
+use \Firebase\JWT\JWT;
+
+class Auth {
 
 protected $REQUIRE_HTTPS = true;
 protected $TABLE = array(
@@ -6,6 +12,9 @@ protected $TABLE = array(
   'USER' => 'userID',
   'PASS' => 'hashedPassword'
 );
+
+protected $jwtPublicKeyListing = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
+protected $jwtAudience = 'value-request';
 
 private $phi;
 private $db;
@@ -130,7 +139,11 @@ public function challenge ( $realm="standard" ) {
  */
 public function checkAuthorization ( $authorization=null ) {
   if ( !$authorization ) $authorization = $this->phi->request->headers('Authorization');
-  if ( ! $authorization ) return null;
+  if ( ! $authorization ) {
+    \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
+    //\Phi::log_json( $this->phi->request->headers() );
+    return null;
+  }
   $authScheme = \Phi::strpop( $authorization );
   switch ( strtolower($authScheme) ) {
     case "basic":
@@ -145,23 +158,43 @@ public function checkAuthorization ( $authorization=null ) {
           $this->user = $user;
           return $user;
         } else {
-          \Phi::log("Failed login attempt by $username");
+          \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (incorrect password)');
           return false;
         }
       }
       # Pretend To Verify Nonexistant User's Credentials
       else {
         password_verify( 'Missing User', '$2a$08$nqWza8jri7gZmOKYubrLrOVbEZTbEzXnbkJ.ad/2.RlbsbMQxPVO.' );
+        \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (unknown username)');
+        return false;
+      }
+      break;
+    case "bearer":
+      try {
+        $payload = $this->verifyJwt($authorization, $this->jwtAudience);
+        $this->user = $payload;
+        return $this->user;
+      }
+      catch (\Exception $e) {
         return false;
       }
       break;
     default:
+      \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (unsupported authenticaiton scheme)');
       return false;
   }
 }
 
 public function checkConnectionSecurity () {
-  return ( ( $this->REQUIRE_HTTPS ? $this->phi->request->isHTTPS() : true ) && $this->phi->request->isAllowedOrigin() );
+  if ( $this->REQUIRE_HTTPS && !$this->phi->request->isHTTPS() ){
+    \Phi::log(date('c').' Request refused from '.\Phi\Request::ip().' (required HTTPS)');
+    return false;
+  }
+  if ( !$this->phi->request->isAllowedOrigin() ){
+    \Phi::log(date('c').' Request refused from '.\Phi\Request::ip().' (not allowed origin)');
+    return false;
+  }
+  return true;
 }
 
 public function inSession () {
@@ -232,6 +265,83 @@ public function logOut () {
 
 public function sessionUser () {
   return ( isset( $this->phi->session['phiSessionUser'] ) ) ? $this->phi->session['phiSessionUser'] : false;
+}
+
+########################################
+# JSON Web Token Authorization Methods #
+########################################
+
+public function getPublicKeys () {
+  $phi = $this->phi;
+  // First, check the database for current keys.
+  try {
+    $now = time();
+    $result = $phi->db->query("SELECT `id`,`certificate` FROM `PublicKeys` WHERE `expires`>$now");
+    if ( $result->num_rows ) {
+      $publicKeys = [];
+      while ( $row = $result->fetch_assoc() ) {
+        $publicKeys[$row['id']] = $row['certificate'];
+      }
+      // $phi->log('retrieved keys from database');
+      return $publicKeys;
+    }
+  }
+  catch (\Exception $e) {
+    // ignore errors
+  }
+  // Need new keys? Get from public listing.
+  try {
+    $response = $phi->fetch($this->jwtPublicKeyListing, [CURLOPT_HEADER => true]);
+    $expires = strtotime($response['headers']['Expires']);
+    $publicKeys = json_decode($response['body'], true);
+  }
+  catch (\Exception $e) {
+    // Failed to get or decode keys.
+    return null;
+  }
+  // Save new keys in database.
+  foreach( $publicKeys as $id => $certificate ) {
+    $phi->db->pq(
+      'INSERT INTO `PublicKeys` (`id`, `certificate`, `expires`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `certificate`=VALUES(`certificate`), `expires`=VALUES(`expires`)',
+      [ $id, $certificate, $expires ],
+      'ssi'
+    );
+  }
+  // Return keys.
+  // $phi->log('retrieved new keys from public listing');
+  return $publicKeys;
+}
+
+public function verifyJwt ($token, $projectName) {
+  $phi = $this->phi;
+
+  $publicKeys = self::getPublicKeys();
+  if (!is_array($publicKeys)) {
+    throw new \Exception('Could not retrieve public keys for verifying JSON Web Token');
+  }
+
+  // Attempt to Decode Token
+  try {
+    $payload = JWT::decode($token, $publicKeys, ['RS256']);
+    $payload = (array) $payload;
+  }
+  catch(\Exception $e) {
+    throw $e;
+  }
+
+  // Verify Token
+  $now = time();
+  if (!(true
+    && $payload['aud'] === $projectName
+    && $payload['iss'] === 'https://securetoken.google.com/'.$projectName
+    && is_string($payload['sub']) && $payload['sub'] !== ''
+    && $payload['sub'] === $payload['user_id']
+    && $payload['auth_time'] <= $now
+  )){
+    throw new \Exception('Invalid token');
+  }
+
+  return $payload;
 }
 
 }?>
