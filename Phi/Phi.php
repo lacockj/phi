@@ -10,7 +10,7 @@ private $DB_CONFIG = null;
 private $AUTH_CONFIG = null;
 private $ALLOW_ORIGIN = null;
 
-private $configurable = array( 'SESSION_LIFE', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG', 'ALLOW_ORIGIN' );
+private $configurable = array( 'SESSION_LIFE', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG', 'ALLOW_ORIGIN', 'JWT_CONFIG' );
 private $autoloadDirs = array();
 private $request = null;
 private $response = null;
@@ -27,12 +27,6 @@ public $config = array();
  */
 public function __construct ( $configFile=null ) {
 
-  # Standard Autoload Directories
-  $this->autoloadDirs = array(
-    dirname( dirname(__FILE__) ), # Same as Phi
-    //self::pathTo( "." )           # Same as Execution
-  );
-
   # Register Autoloader
   spl_autoload_register(function($className){
     $classFile = "/" . str_replace("\\", "/", $className) . ".php";
@@ -48,6 +42,10 @@ public function __construct ( $configFile=null ) {
 
   # Initial Configuration (all but SESSION_LIFE can be changed later)
   if ( $configFile ) $this->configure( $configFile );
+
+  # Standard Autoload Directories
+  $this->addAutoloadDir( dirname( dirname(__FILE__) ) );  # Same as Phi
+  // $this->addAutoloadDir( "." );   # Same as Execution
 
   header( "Access-Control-Allow-Credentials: true" );
 }

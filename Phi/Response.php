@@ -22,8 +22,10 @@ public static function headers ( $headers, $replace=true ) {
 public static function allow ( $allowedMethods ) {
   if ( is_string($allowedMethods) ) {
     header( "Allow: " . $allowedMethods );
+    header( "Access-Control-Allow-Methods: " . $allowedMethods );
   } elseif ( is_array($allowedMethods) ) {
     header( "Allow: " . implode( ", ", $allowedMethods ) );
+    header( "Access-Control-Allow-Methods: " . implode( ", ", $allowedMethods ) );
   }
 }
 
@@ -50,7 +52,7 @@ public static function content_json () {
 
 public static function allow_origin ( $origin ) {
   header( "Access-Control-Allow-Origin: $origin" );
-  header( "Access-Control-Allow-Headers: Authorization" );
+  header( "Access-Control-Allow-Headers: Authorization, Content-Type" );
 }
 
 

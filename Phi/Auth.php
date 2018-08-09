@@ -13,9 +13,6 @@ protected $TABLE = array(
   'PASS' => 'hashedPassword'
 );
 
-protected $jwtPublicKeyListing = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
-protected $jwtAudience = 'value-request';
-
 private $phi;
 private $db;
 private $user;
@@ -171,7 +168,7 @@ public function checkAuthorization ( $authorization=null ) {
       break;
     case "bearer":
       try {
-        $payload = $this->verifyJwt($authorization, $this->jwtAudience);
+        $payload = $this->verifyJwt($authorization, $this->phi->config['JWT_CONFIG']['AUDIENCE']);
         $this->user = $payload;
         return $this->user;
       }
@@ -277,7 +274,7 @@ public function getPublicKeys () {
   try {
     $now = time();
     $result = $phi->db->query("SELECT `id`,`certificate` FROM `PublicKeys` WHERE `expires`>$now");
-    if ( $result->num_rows ) {
+    if ( $result && $result->num_rows ) {
       $publicKeys = [];
       while ( $row = $result->fetch_assoc() ) {
         $publicKeys[$row['id']] = $row['certificate'];
@@ -291,7 +288,7 @@ public function getPublicKeys () {
   }
   // Need new keys? Get from public listing.
   try {
-    $response = $phi->fetch($this->jwtPublicKeyListing, [CURLOPT_HEADER => true]);
+    $response = $phi->fetch($phi->config['JWT_CONFIG']['PUBLIC_KEY_LISTING'], [CURLOPT_HEADER => true]);
     $expires = strtotime($response['headers']['Expires']);
     $publicKeys = json_decode($response['body'], true);
   }
@@ -328,6 +325,7 @@ public function verifyJwt ($token, $projectName) {
   catch(\Exception $e) {
     throw $e;
   }
+  // \Phi::log_json($payload);
 
   // Verify Token
   $now = time();

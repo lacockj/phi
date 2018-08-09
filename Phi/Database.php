@@ -177,7 +177,7 @@ public function pq ( $sql, $params=null, $types=null ) {
 }
 
 # Full-name alias of 'pq' method. #
-function parameterized_query(){ 
+function parameterized_query(){
   return call_user_func_array('self::pq', func_get_args());
 }
 

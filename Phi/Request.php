@@ -94,6 +94,7 @@ public function loadRoutes ( $routesINI, $routeBase="" ) {
 
   # No Routes #
   else {
+    \Phi::log(date('c').': Routes config file does not exist.');
     //throw new \Exception('Routes config file does not exist.');
   }
 }
