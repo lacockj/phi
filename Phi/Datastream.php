@@ -69,7 +69,7 @@ function valid() {
 }
 
 function current() {
-  $this->_revertFields();
+  $this->_revertFields($this->row);
   return $this->row;
 }
 

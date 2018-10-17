@@ -21,11 +21,14 @@ private $file = null;
 
 public $config = array();
 
+private static $_instance = null;
+
 /**
  * Constructor
  * @param {string} $configFile - Configuration filename relative to the Document Root.
  */
 public function __construct ( $configFile=null ) {
+  static::$_instance = $this;
 
   # Register Autoloader
   spl_autoload_register(function($className){
@@ -106,12 +109,19 @@ public function __get ( $name ) {
   }
 }
 
+public static function instance () {
+  return static::$_instance;
+}
+
 public function configure ( $configFile=null ) {
 
   # Read config file
   if ( is_string($configFile) ) {
     $configFile = self::pathTo( $configFile );
     if ( file_exists($configFile) ) $config = parse_ini_file( $configFile, true );
+  }
+  elseif (is_array($configFile)) {
+    $config = $configFile;
   }
 
   # Overwrite defaults
