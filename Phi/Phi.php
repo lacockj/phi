@@ -170,7 +170,10 @@ public function loadRoutes ( $routesIniFile=null, $routeBase="" ) {
 
 public function run ( $uri=null, $method=null ) {
   if ( $this->request === null ) $this->loadRoutes();
-  if ( ! $this->request->isAllowedOrigin() ) return false;
+  if ( ! $this->request->isAllowedOrigin() ) {
+    self::log('Rejecting request. '.$this->request->sourceOrigin().' is not in allowed origins: '.json_encode($this->allowedOrigins));
+    return false;
+  }
   return $this->request->run( $uri, $method );
 }
 

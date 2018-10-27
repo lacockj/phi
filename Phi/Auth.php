@@ -12,6 +12,10 @@ protected $TABLE = array(
   'USER' => 'userID',
   'PASS' => 'hashedPassword'
 );
+protected $API_TABLE = array(
+  'NAME' => 'groups',
+  'KEY'  => 'api_key'
+);
 
 private $phi;
 private $db;
@@ -25,11 +29,14 @@ public function __construct ( \Phi $phi, $config ) {
     } else {
       $this->db = $this->phi->db;
     }
+    if ( isset($config['REQUIRE_HTTPS']) ) {
+      $this->REQUIRE_HTTPS = (bool) $config['REQUIRE_HTTPS'];
+    }
     if ( isset($config['TABLE']) && $phi->all_set( $config['TABLE'], 'NAME', 'USER', 'PASS' ) ) {
       $this->TABLE = $config['TABLE'];
     }
-    if ( isset($config['REQUIRE_HTTPS']) ) {
-      $this->REQUIRE_HTTPS = (bool) $config['REQUIRE_HTTPS'];
+    if ( isset($config['API_TABLE']) && $phi->all_set( $config['API_TABLE'], 'NAME', 'KEY' ) ) {
+      $this->API_TABLE = $config['API_TABLE'];
     }
   }
 }
@@ -137,7 +144,7 @@ public function challenge ( $realm="standard" ) {
 public function checkAuthorization ( $authorization=null ) {
   if ( !$authorization ) $authorization = $this->phi->request->headers('Authorization');
   if ( ! $authorization ) {
-    \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
+    // \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
     //\Phi::log_json( $this->phi->request->headers() );
     return null;
   }
@@ -263,6 +270,37 @@ public function logOut () {
 public function sessionUser () {
   return ( isset( $this->phi->session['phiSessionUser'] ) ) ? $this->phi->session['phiSessionUser'] : false;
 }
+
+
+#################################
+# API Key Authorization Methods #
+#################################
+
+/**
+ * @return {bool|null} - Returns TRUE is "Authorization" header is valid, FALSE if it is invalid, or NULL if it is missing.
+ */
+public function checkApiKey ( $apiKey=null ) {
+  if ( !$apiKey ) $apiKey = $this->phi->request->headers('X-Api-Key');
+  if ( !$apiKey ) return null;
+  $group = $this->getGroupByApiKey($apiKey);
+  return $group;
+}
+
+/**
+ * Get Group Record by API Key
+ * @param {string} $apiKey
+ * @returns {array|bool} The UserGroup record array, or false if not found.
+ */
+public function getGroupByApiKey ($apiKey) {
+  $result = $this->db->pq('SELECT * FROM `'.$this->API_TABLE['NAME'].'` WHERE `'.$this->API_TABLE['KEY'].'`=?', $apiKey);
+  if ($result) {
+    $row = $result->fetch_assoc();
+    $result->close();
+    return $row;
+  }
+  return null;
+}
+
 
 ########################################
 # JSON Web Token Authorization Methods #

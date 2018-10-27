@@ -65,7 +65,7 @@ public function loadRoutes ( $routesINI, $routeBase="" ) {
 
       # Methods #
       if ( !array_key_exists('_m_', $here) ) $here['_m_'] = array();
-      # Specific-Mathod Handlers #
+      # Specific-Method Handlers #
       if ( is_array($handler) ) {
         foreach ( $handler as $method => $methodHandler ) {
           if ( strpos( $methodHandler, "->" ) ) { // not false nor 0
@@ -101,6 +101,7 @@ public function loadRoutes ( $routesINI, $routeBase="" ) {
 
 public function run ( $uri=null, $method=null ) {
   $debug = false;
+  if ( $debug ) $this->phi->log( "Phi::Request::run" );
   if ( ! $this->routes ) {
     if ( $debug ) $this->phi->log( "- no routes loaded" );
     $this->phi->response->status( 404 );
@@ -168,7 +169,7 @@ public function run ( $uri=null, $method=null ) {
   }
   # Class/Method Handler #
   if ( $handler && is_array( $handler ) ) {
-    if ( $debug ) $this->phi->log("Handler is a (class,method) array...");
+    if ( $debug ) $this->phi->log("Handler is a [class,method] array: " . json_encode($handler));
     try {
       $classInstance = new $handler[0]( $this->phi );
       $classMethod = $handler[1];
