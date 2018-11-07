@@ -59,6 +59,39 @@ public function __get ( $name ) {
 }
 
 /**
+ * Magic property setter
+ * @param {string} $name  - The property to set.
+ * @param {string} $value - The property's new value.
+ * @return {bool}         - If the operation succeeded.
+ */
+public function __set ( $name, $value ) {
+  $this->phi->log_json([
+    'setting auth property',
+    $name,
+    $value
+  ]);
+
+  switch ( $name ) {
+
+    case "TABLE":
+      if (is_array($value)) {
+        if (array_key_exists('NAME', $value) && is_string($value['NAME']) && $value['NAME'])
+          $this->TABLE['NAME'] = $value['NAME'];
+        if (array_key_exists('USER', $value) && is_string($value['USER']) && $value['USER'])
+          $this->TABLE['USER'] = $value['USER'];
+        if (array_key_exists('PASS', $value) && is_string($value['PASS']) && $value['PASS'])
+          $this->TABLE['PASS'] = $value['PASS'];
+        return true;
+      } else {
+        return false;
+      }
+
+    default:
+      return false;
+  }
+}
+
+/**
  * Create New User
  * @param {string} $userID - A unique User ID.
  * @param {string} $pass   - An initial password for the new User.
@@ -225,7 +258,7 @@ public function logIn ( $username=null, $password=null ) {
     //$this->user = $user;
     $this->phi->session['phiSessionUser'] = $this->user;
     $this->phi->session->save();
-    return true;
+    return $user;
   # Bad: No session change
   } else {
     return false;

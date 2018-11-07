@@ -1,4 +1,5 @@
 {
+    "name": "lacockj/phi",
     "require-dev": {
         "phploc/phploc": "*"
     }
