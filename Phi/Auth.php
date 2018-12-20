@@ -310,7 +310,7 @@ public function sessionUser () {
 #################################
 
 /**
- * @return {bool|null} - Returns TRUE is "Authorization" header is valid, FALSE if it is invalid, or NULL if it is missing.
+ * @return array|null The UserGroup record array if API Key is found, or NULL if not.
  */
 public function checkApiKey ( $apiKey=null ) {
   if ( !$apiKey ) $apiKey = $this->phi->request->headers('X-Api-Key');
@@ -321,8 +321,8 @@ public function checkApiKey ( $apiKey=null ) {
 
 /**
  * Get Group Record by API Key
- * @param {string} $apiKey
- * @returns {array|bool} The UserGroup record array, or false if not found.
+ * @param string $apiKey
+ * @return array|null The UserGroup record array, or null if not found.
  */
 public function getGroupByApiKey ($apiKey) {
   $result = $this->db->pq('SELECT * FROM `'.$this->API_TABLE['NAME'].'` WHERE `'.$this->API_TABLE['KEY'].'`=?', $apiKey);
