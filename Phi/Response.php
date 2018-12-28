@@ -126,6 +126,11 @@ public static function json ( $data, $code=200, $reason="", $headers=null ) {
         echo ']';
         ob_end_flush();
         break;
+
+      default:
+        if (method_exists($data, 'jsonSerialize')) {
+          echo json_encode($data);
+        }
     }
   } else {
     echo json_encode( $data );
