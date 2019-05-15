@@ -138,15 +138,38 @@ public static function json ( $data, $code=200, $reason="", $headers=null ) {
 }
 
 public static function csv ( $data, $code=200, $reason=null ) {
-  if ( is_array( $data ) ) {
-    self::status( $code, $reason );
-    header('Content-type: text/csv');
+  self::status( $code, $reason );
+  header('Content-type: text/csv');
+
+  # Stream Database Output #
+  if ( is_object( $data ) ) {
+    switch ( get_class( $data ) ) {
+
+      case "Phi\Datastream":
+      case "mysqli_result":
+        ob_start( null, 1048576 );
+        $i = 0;
+        while ( $row = $data->fetch_assoc() ) {
+          if ($i === 0) {
+            echo self::csvRow( array_keys($row) ), PHP_EOL;
+          }
+          echo self::csvRow( array_values($row) ), PHP_EOL;
+          $i++;
+        }
+        ob_end_flush();
+        break;
+
+      default:
+        throw new Exception('Unsupported data type for CSV response.');
+    }
+  }
+
+  # Output Array as CSV Rows
+  elseif (is_array($data)) {
     if (! is_array($data[0]) ) $data = array( $data );
     $keys = array_keys( $data[0] );
-    #echo $f3->csv( $keys ) . PHP_EOL;
     echo self::csvRow( $keys ) . PHP_EOL;
     foreach ($data as $row) {
-      #echo $f3->csv( $row ) . PHP_EOL;
       echo self::csvRow( $row ) . PHP_EOL;
     }
   }

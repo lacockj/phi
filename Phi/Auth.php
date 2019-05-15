@@ -65,12 +65,6 @@ public function __get ( $name ) {
  * @return {bool}         - If the operation succeeded.
  */
 public function __set ( $name, $value ) {
-  $this->phi->log_json([
-    'setting auth property',
-    $name,
-    $value
-  ]);
-
   switch ( $name ) {
 
     case "TABLE":
@@ -175,10 +169,10 @@ public function challenge ( $realm="standard" ) {
  * @return {bool|null} - Returns TRUE is "Authorization" header is valid, FALSE if it is invalid, or NULL if it is missing.
  */
 public function checkAuthorization ( $authorization=null ) {
-  if ( !$authorization ) $authorization = $this->phi->request->headers('Authorization');
-  if ( ! $authorization ) {
+  if (!$authorization) $authorization = $this->phi->request->headers('Authorization');
+  if (!$authorization) {
     // \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
-    //\Phi::log_json( $this->phi->request->headers() );
+    // \Phi::log_json( $this->phi->request->headers() );
     return null;
   }
   $authScheme = \Phi::strpop( $authorization );
@@ -218,6 +212,12 @@ public function checkAuthorization ( $authorization=null ) {
       break;
     default:
       \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (unsupported authenticaiton scheme)');
+      \Phi::log_json([
+        $this->phi->request->headers(),
+        $this->phi->request->headers('Authorization'),
+        $authorization,
+        $authScheme
+      ]);
       return false;
   }
 }
