@@ -50,16 +50,21 @@ public static function content_json () {
   header( "Content-type: application/json" );
 }
 
+public static function content_ndjson () {
+  header( "Content-type: application/x-ndjson" );
+}
+
 public static function allow_origin ( $origin ) {
   header( "Access-Control-Allow-Origin: $origin" );
-  header( "Access-Control-Allow-Headers: Authorization, Content-Type" );
+  header( "Access-Control-Allow-Headers: Authorization, Content-Type, X-Api-Key, X-Guest-Key" );
 }
 
 
 # Cache-Control Methods #
 
-public static function allow_cache ( $mtime, $etag="", $maxAge=0 ) {
-  header( "Cache-Control: max-age=$maxAge" );
+public static function allow_cache ( $mtime, $etag="", $maxAge=0, $private=false ) {
+  $privacy = ($private) ? 'private' : 'public';
+  header( "Cache-Control: $privacy, max-age=$maxAge" );
   header( "Last-Modified: ".gmdate("D, d M Y H:i:s", $mtime)." GMT");
   header( "ETag: $etag" );
 }
@@ -101,39 +106,85 @@ public static function json ( $data, $code=200, $reason="", $headers=null ) {
   header('Content-type: application/json');
   if ( $headers ) self::headers( $headers );
   if ( is_object( $data ) ) {
-    switch ( get_class( $data ) ) {
+    # Object implements Iterator
+    if($data instanceof \Iterator) {
+      echo '[';
+      foreach ( $data as $i => $row ) {
+        echo ($i!=0?",":""), json_encode( $row );
+      }
+      echo ']';
+    }
+    # SQL Result
+    else {
+      switch ( get_class( $data ) ) {
 
-      case "Phi\Datastream":
-        ob_start( null, 1048576 );
-        echo '[';
-        foreach ( $data as $i => $row ) {
-          if ( $i != 0 ) echo ",";
-          echo json_encode( $row );
-        }
-        echo ']';
-        ob_end_flush();
-        break;
+        case "Phi\Datastream":
+          ob_start( null, 1048576 );
+          echo '[';
+          foreach ( $data as $i => $row ) {
+            if ( $i != 0 ) echo ",";
+            echo json_encode( $row );
+          }
+          echo ']';
+          ob_end_flush();
+          break;
 
-      case "mysqli_result":
-        ob_start( null, 1048576 );
-        echo '[';
-        $i = 0;
-        while ( $row = $data->fetch_assoc() ) {
-          if ( $i != 0 ) echo ",";
-          echo json_encode( $row );
-          $i++;
-        }
-        echo ']';
-        ob_end_flush();
-        break;
+        case "mysqli_result":
+          ob_start( null, 1048576 );
+          echo '[';
+          $i = 0;
+          while ( $row = $data->fetch_assoc() ) {
+            if ( $i != 0 ) echo ",";
+            echo json_encode( $row );
+            $i++;
+          }
+          echo ']';
+          ob_end_flush();
+          break;
 
-      default:
-        if (method_exists($data, 'jsonSerialize')) {
-          echo json_encode($data);
-        }
+        default:
+          if (method_exists($data, 'jsonSerialize')) {
+            echo json_encode($data);
+          }
+      }
     }
   } else {
     echo json_encode( $data );
+  }
+}
+
+public static function ndjson ( $data, $code=200, $reason="", $headers=null ) {
+  self::status( $code, $reason );
+  header('Content-type: application/x-ndjson');
+  if ( $headers ) self::headers( $headers );
+  if ( is_object( $data ) ) {
+    # Object implements Iterator
+    if($data instanceof \Iterator) {
+      foreach ($data as $row) {
+        echo json_encode( $row ), "\n";
+      }
+    }
+    # SQL Result
+    else {
+      switch ( get_class( $data ) ) {
+
+        case "Phi\Datastream":
+        case "mysqli_result":
+          while ( $row = $data->fetch_assoc() ) {
+            echo json_encode( $row ), "\n";
+          }
+          break;
+
+        default:
+        throw new \Exception('Output must be array, mysqli_result, or Phi\Datastream object. Got: ' . get_class( $data ));
+      }
+    }
+  } elseif (is_array($data)) {
+    foreach ($data as $row) {
+      echo json_encode( $data ), "\n";
+    }
+  } else {
+    throw new \Exception('Output must be array, mysqli_result, or Phi\Datastream object.');
   }
 }
 
@@ -143,24 +194,36 @@ public static function csv ( $data, $code=200, $reason=null ) {
 
   # Stream Database Output #
   if ( is_object( $data ) ) {
-    switch ( get_class( $data ) ) {
-
-      case "Phi\Datastream":
-      case "mysqli_result":
-        ob_start( null, 1048576 );
-        $i = 0;
-        while ( $row = $data->fetch_assoc() ) {
-          if ($i === 0) {
-            echo self::csvRow( array_keys($row) ), PHP_EOL;
-          }
-          echo self::csvRow( array_values($row) ), PHP_EOL;
-          $i++;
+    # Object implements Iterator
+    if($data instanceof \Iterator) {
+      foreach ($data as $i => $row) {
+        if ($i === 0) {
+          echo self::csvRow( array_keys($row) ), PHP_EOL;
         }
-        ob_end_flush();
-        break;
+        echo self::csvRow( array_values($row) ), PHP_EOL;
+      }
+    }
+    # SQL Result
+    else {
+      switch ( get_class( $data ) ) {
 
-      default:
-        throw new Exception('Unsupported data type for CSV response.');
+        case "Phi\Datastream":
+        case "mysqli_result":
+          ob_start( null, 1048576 );
+          $i = 0;
+          while ( $row = $data->fetch_assoc() ) {
+            if ($i === 0) {
+              echo self::csvRow( array_keys($row) ), PHP_EOL;
+            }
+            echo self::csvRow( array_values($row) ), PHP_EOL;
+            $i++;
+          }
+          ob_end_flush();
+          break;
+
+        default:
+          throw new Exception('Unsupported data type for CSV response.');
+      }
     }
   }
 
@@ -247,6 +310,7 @@ public static function friendlyTime( $s, $abbr=false ) {
 # Event Stream Methods (experimental) #
 
 public static function openEventStream () {
+  set_time_limit(0);
   header('Content-Type: text/event-stream');
   header('Cache-Control: no-cache');
 }

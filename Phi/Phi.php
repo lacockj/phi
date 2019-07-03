@@ -3,7 +3,7 @@
 public $errors = array();
 
 private $TEMP_DIR = "/com.lakehawksolutions.Phi";
-private $SESSION_LIFE = 43200; # 12 hours
+private $SESSION_LIFE = null; # expire when browser closes
 private $ROUTE_BASE = "";
 private $ROUTES_INI = "";
 private $DB_CONFIG = null;

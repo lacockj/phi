@@ -2,6 +2,7 @@
 
 # Properties #
 
+public $num_rows = 0;
 public $errors = array();
 
 protected $fieldTypes = array(
@@ -18,6 +19,7 @@ private $row = array();
 private $allowReset = true;
 
 function __construct ( \mysqli_stmt $stmt, array $settings=array() ) {
+  $this->num_rows = $stmt->num_rows;
 
   # Identify the columns in the result set. #
   $fields = array();

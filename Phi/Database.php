@@ -10,11 +10,12 @@ protected $returnDataStream = true;
 
 /**
  * Connect to a database.
- * @param {string} $HOST - Database host address.
- * @param {string} $USER - Database username.
- * @param {string} $PASS - Database password.
- * @param {string} $NAME - Database name.
- * @return {object} - Your connection to the database and it's methods.
+ * @param string $HOST - Database host address.
+ * @param string $USER - Database username.
+ * @param string $PASS - Database password.
+ * @param string $NAME - Database name.
+ * @param string $PORT - Database port. Optional; default ini_get("mysqli.default_port").
+ * @return self - Your connection to the database and it's methods.
  */
 function __construct () {
 
@@ -28,6 +29,7 @@ function __construct () {
         $USER = $config['USER'];
         $PASS = $config['PASS'];
         $NAME = $config['NAME'];
+        $PORT = array_key_exists('POST', $config) ? $config['PORT'] : ini_get("mysqli.default_port");
       } else {
         throw new \Exception("Configuration Array must have HOST, USER, PASS, and NAME", 1);
       }
@@ -39,12 +41,13 @@ function __construct () {
       $USER = $config[1];
       $PASS = $config[2];
       $NAME = $config[3];
+      $PORT = (count($config)>=5) ? $config[4] : ini_get("mysqli.default_port");
       break;
 
   }
 
   # Connect to the MySQL server. #
-  parent::__construct($HOST, $USER, $PASS, $NAME);
+  parent::__construct($HOST, $USER, $PASS, $NAME, $PORT);
   if ($this->connect_error) {
     $this->errors[] = $this->connect_errno.": ".$this->connect_error;
     return false;
@@ -71,14 +74,14 @@ public function lastError () {
 
 /**
  * Prepare and execute a query on the database.
- * @param {string} $sql      - The SQL query to execute, with '?' placeholders for parameters.
- * @param {array}  [$params] - The parameters to safely fill into the query.
- * @param {string} [$types]  - Data types of the parameters, one character per parameter.
- *                             ('s':string, 'i':integer, 'd':double, 'b':blob)
- * @return {Datastream|number|FALSE} - A Datastream object for retrieving results a row at a time,
- *                                     or the insert_id of a single INSERT query,
- *                                     or the number of affected_rows for multiple INSERT and UPDATE queries,
- *                                     or FALSE if there was an error.
+ * @param string $sql      - The SQL query to execute, with '?' placeholders for parameters.
+ * @param array  [$params] - The parameters to safely fill into the query.
+ * @param string [$types]  - Data types of the parameters, one character per parameter.
+ *                           ('s':string, 'i':integer, 'd':double, 'b':blob)
+ * @return \Phi\Datastream|number|false - A Datastream object for retrieving results a row at a time,
+ *                                        or the insert_id of a single INSERT query,
+ *                                        or the number of affected_rows for multiple INSERT and UPDATE queries,
+ *                                        or FALSE if there was an error.
  */
 public function pq ( $sql, $params=null, $types=null ) {
 
@@ -183,13 +186,13 @@ function parameterized_query(){
 
 /**
  * Create an SQL string from an array of fields.
- * @param  {array}  $params            - The SQL query parameters.
- * @param  {string} $params['op']      - The operation to perform, i.e. "SELECT" or "INSERT".
- * @param  {string} $params['table']   - The table in which to perform the operation.
- * @param  {array}  $params['columns'] - The table columns (fields) to include in the SQL.
- * @param  {bool}   $params['update']  - SQL includes "ON DUPLICATE KEY UPDATE..." commands when set to true.
- * @param  {bool}   $params['ignore']  - SQL includes "IGNORE" duplicate keys command in INSERT operations when set to true.
- * @return {string} - The resulting SQL.
+ * @param  array  $params            - The SQL query parameters.
+ * @param  string $params['op']      - The operation to perform, i.e. "SELECT" or "INSERT".
+ * @param  string $params['table']   - The table in which to perform the operation.
+ * @param  array  $params['columns'] - The table columns (fields) to include in the SQL.
+ * @param  bool   $params['update']  - SQL includes "ON DUPLICATE KEY UPDATE..." commands when set to true.
+ * @param  bool   $params['ignore']  - SQL includes "IGNORE" duplicate keys command in INSERT operations when set to true.
+ * @return string - The resulting SQL.
  */
 public function compile_sql ($params) {
   $op      = isset($params['op'])      ? $params['op']      : 'SELECT';
@@ -234,9 +237,9 @@ public function compile_sql ($params) {
 
 /**
  * Create an SQL-compatible list of columns, optionally as a list of value updates for duplicate keys.
- * @param  {array} $columns  - The columns.
- * @param  {bool}  $asUpdate - When true, return in format of "`column_name`=VALUES(`column_name`)".
- * @return {string} - The resulting SQL-compatible string.
+ * @param  array $columns  - The columns.
+ * @param  bool  $asUpdate - When true, return in format of "`column_name`=VALUES(`column_name`)".
+ * @return string - The resulting SQL-compatible string.
  */
 public function compile_columns ($columns, $asUpdate=false) {
   if (count($columns) == 1 && $columns[0] === '*') throw new Exception("Cannot compile '*' as column list.");
@@ -252,12 +255,241 @@ public function compile_columns ($columns, $asUpdate=false) {
 public function table_fields ( $table ) {
   $rows = $this->pq("DESCRIBE $table");
   $fields = array();
-  if ( is_array($rows) ) {
+  if ( $rows ) {
     foreach ( $rows as $row ) {
       $fields[] = $row['Field'];
     }
   }
   return $fields;
+}
+
+/**
+ * Prepare and execute a bulk-insert query on the database.
+ * @param array  $opts                   - Bulk-insert options...
+ * @param string $opts['tbl_name']       - Table name
+ * @param array  $opts['col_names]       - Column names
+ * @param array  $opts['data']           - The data to insert, an array or associative arrays.
+ * @param string $opts['value_markers']  - (optional) Custom inser value markers; defaults to one '?' for each column.
+ * @param string $opts['types']          - (optional) Data types of the parameters, one character per parameter;
+ *                                         defaults to one 's' for each column;
+ *                                         ('s':string, 'i':integer, 'd':double, 'b':blob)
+ * @param int    $opts['max_block_size'] - (optional) Max number of rows per INSERT query; defaults to 1000.
+ * @param int    $opts['update_dups']    - (optional) Update records with duplicate keys; defaults to FALSE.
+ * @return array  - Inserted row IDs.
+ */
+public function bulk_insert($opts) {
+
+  # Validate Options
+
+  # Table Name
+  if (array_key_exists('tbl_name', $opts) && is_string($opts['tbl_name']) && $opts['tbl_name']) {
+    $tbl_name = $opts['tbl_name'];
+  } else {
+    throw new Exception("Option tbl_name must be included, and be a string.");
+  }
+  # Column Names
+  if (array_key_exists('col_names', $opts) && is_array($opts['col_names']) && count($opts['col_names'])) {
+    $col_name_list = '`' . implode('`,`', $opts['col_names']) . '`';
+  } else {
+    throw new Exception("Option col_names must be included, and be an array of strings.");
+  }
+  # Value Markers
+  if (array_key_exists('value_markers', $opts)) {
+    $value_markers = $opts['value_markers'];
+  } else {
+    $value_markers = implode(',', array_fill(0, count($opts['col_names']), "?"));
+  }
+  # Value Types
+  if (array_key_exists('types', $opts)) {
+    $types = $opts['types'];
+  } else {
+    $types = str_repeat('s', count($opts['col_names']));
+  }
+  # Max Block Size
+  if (array_key_exists('max_block_size', $opts)) {
+    $max_block_size = $opts['max_block_size'];
+  } else {
+    $max_block_size = 1000;
+  }
+  # Max Block Size
+  if (array_key_exists('update_dups', $opts)) {
+    $update_dups = $opts['update_dups'];
+  } else {
+    $update_dups = false;
+  }
+  if ($update_dups) {
+    # ON DUPLICATE KEY UPDATE `col1`=VALUES(`col1`), `col2`=VALUES(`col2`)
+    $update_list = [];
+    foreach ($opts['col_names'] as $col_name) {
+      $update_list[] = "`$col_name`=VALUES(`$col_name`)";
+    }
+    $update_stmt = ' ON DUPLICATE KEY UPDATE ' . implode(',', $update_list);
+  } else {
+    $update_stmt = '';
+  }
+  # Data
+  if (!(array_key_exists('data', $opts) && is_array($opts['data']) && count($opts['data']))) {
+    throw new Exception("Option data must be included, and be an array of arrays.");
+  }
+
+  # While data remains
+  $inserted = 0;
+  for ($sliceOffset = 0; $sliceOffset < count($opts['data']); $sliceOffset += $max_block_size) {
+
+    # Get next slice of data
+    $dataSlice = array_slice($opts['data'], $sliceOffset, $max_block_size);
+    if (!count($dataSlice)) break;
+
+    # Build query blocks.
+    $value_markers_block = '(' . implode('),(', array_fill(0, count($dataSlice), $value_markers)) . ')';
+    $types_block = implode('', array_fill(0, count($dataSlice), $types));
+    
+    # Prepare the query.
+    $query = "INSERT INTO `$tbl_name` ($col_name_list) VALUES $value_markers_block $update_stmt";
+    if (! $stmt = parent::prepare($query) ) {
+      throw new \Exception($this->error);
+    }
+
+    # Bind the parameters. #
+    $bound_params = [];
+    foreach ($dataSlice as &$row) {
+      foreach ($row as &$val) $bound_params[] = &$val;
+    }
+    array_unshift($bound_params, $types_block);
+    if (! call_user_func_array( array($stmt, "bind_param"), $bound_params )) {
+      $this->errors[] = array(
+        'operation' => 'Database->bulk_insert bind_param',
+        'errno' => $this->errno,
+        'error' => $this->error
+      );
+      return false;
+    }
+
+    # Execute the query. #
+    if ($stmt->execute()) {
+      if ( $stmt->affected_rows ) {
+        $inserted += $stmt->affected_rows;
+      }
+    }
+
+  }
+
+  return $inserted;
+}
+
+/**
+ * Prepare and execute bulk-inserts from source file.
+ * @param array  $opts                   - Bulk-insert options...
+ * @param string $opts['tbl_name']       - Table name
+ * @param array  $opts['col_names]       - Column names
+ * @param object #opts['filehandle']     - The input file, a CSV, first line is column headings.
+ * @param string $opts['value_markers']  - (optional) Custom inser value markers; defaults to one '?' for each column.
+ * @param string $opts['types']          - (optional) Data types of the parameters, one character per parameter;
+ *                                         defaults to one 's' for each column;
+ *                                         ('s':string, 'i':integer, 'd':double, 'b':blob)
+ * @param int    $opts['max_block_size'] - (optional) Max number of rows per INSERT query; defaults to 100.
+ * 
+ * @return array  - Inserted row IDs.
+ */
+public function bulk_insert_csv($opts) {
+
+  # Validate Options
+
+  # Table Name
+  if (array_key_exists('tbl_name', $opts) && is_string($opts['tbl_name']) && $opts['tbl_name']) {
+    $tbl_name = $opts['tbl_name'];
+  } else {
+    throw new Exception("Option tbl_name must be included, and be a string.");
+  }
+  # Column Names
+  if (array_key_exists('col_names', $opts) && is_array($opts['col_names']) && count($opts['col_names'])) {
+    $col_name_list = '`' . implode('`,`', $opts['col_names']) . '`';
+  } else {
+    throw new Exception("Option col_names must be included, and be an array of strings.");
+  }
+  # Value Markers
+  if (array_key_exists('value_markers', $opts)) {
+    $value_markers = $opts['value_markers'];
+  } else {
+    $value_markers = implode(',', array_fill(0, count($opts['col_names']), "?"));
+  }
+  # Value Types
+  if (array_key_exists('types', $opts)) {
+    $types = $opts['types'];
+  } else {
+    $types = str_repeat('s', count($opts['col_names']));
+  }
+  # Max Block Size
+  if (array_key_exists('max_block_size', $opts)) {
+    $max_block_size = $opts['max_block_size'];
+  } else {
+    $max_block_size = 1000;
+  }
+  # Data
+  if (!(array_key_exists('filehandle', $opts))) {
+    throw new Exception("Option filehandle must be included, and be a filehandle.");
+  }
+
+  # Get Column Headings
+  $csv = $opts['filehandle'];
+  rewind($csv);
+  $headings = fgetcsv($csv);
+  
+  # While data remains
+  $inserted = 0;
+  while (!feof($csv)) {
+    
+    # Read data until slice full, or eof reached.
+    $dataSlice = [];
+    while ($row = fgetcsv($csv)) {
+      if (count($headings) === count($row)) {
+        $dataSlice[] = array_combine($headings, $row);
+      }
+      if (count($dataSlice) >= $max_block_size) break;
+    }
+
+    if ($dataSlice) {
+
+      # Build query blocks.
+      $value_markers_block = '(' . implode('),(', array_fill(0, count($dataSlice), $value_markers)) . ')';
+      $types_block = implode('', array_fill(0, count($dataSlice), $types));
+      
+      # Prepare the query.
+      $query = "INSERT INTO `$tbl_name` ($col_name_list) VALUES $value_markers_block";
+      if (! $stmt = parent::prepare($query) ) {
+        throw new \Exception($this->error);
+      }
+
+      # Bind the parameters. #
+      $bound_params = [];
+      foreach ($dataSlice as &$row) {
+        foreach ($opts['col_names'] as $col_name) {
+          if (!array_key_exists($col_name, $row)) {
+            $row[$col_name] = null;
+          }
+          $bound_params[] = &$row[$col_name];
+        }
+      }
+      array_unshift($bound_params, $types_block);
+      if (! call_user_func_array( array($stmt, "bind_param"), $bound_params )) {
+        $this->errors[] = array(
+          'operation' => 'Database->bulk_insert bind_param',
+          'errno' => $this->errno,
+          'error' => $this->error
+        );
+        return false;
+      }
+
+      # Execute the query. #
+      if ($stmt->execute()) {
+        if ( $stmt->affected_rows ) {
+          $inserted += $stmt->affected_rows;
+        }
+      }
+    }
+  }
+
+  return $inserted;
 }
 
 } ?>

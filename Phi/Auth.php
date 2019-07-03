@@ -314,6 +314,12 @@ public function sessionUser () {
  */
 public function checkApiKey ( $apiKey=null ) {
   if ( !$apiKey ) $apiKey = $this->phi->request->headers('X-Api-Key');
+  if ( !$apiKey ) {
+    $input = $this->phi->request->input();
+    if (array_key_exists('key', $input)) {
+      $apiKey = $input['key'];
+    }
+  }
   if ( !$apiKey ) return null;
   $group = $this->getGroupByApiKey($apiKey);
   return $group;
