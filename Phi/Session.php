@@ -3,23 +3,13 @@
 private $_id = null;
 private $_check = null;
 private $_data = null;
+private $_changed = false;
 
-public function __construct ( $sessionlife=null, $secureOnly=true ) {
+public function __construct ( $sessionlife=0, $path='/', $secureOnly=true, $httpOnly=false ) {
   $sessionlife = (int)$sessionlife;
-  session_set_cookie_params(
-    0,     # Session life (to be overridden by setcookie)
-    '/',   # All paths
-    '.'.$_SERVER['SERVER_NAME'], # Domain
-    $secureOnly,  # Cookie only sent over secure connections
-    false  # Not only HTTP
-  );
+  session_set_cookie_params($sessionlife, $path, null, $secureOnly, $httpOnly);
   session_cache_limiter('');
   session_start();
-  if (is_numeric($sessionlife)) {
-    setcookie(session_name(),session_id(),time()+$sessionlife,"/");
-  } else {
-    setcookie(session_name(),session_id());
-  }
   $this->_id = session_id();
   $this->_check = ( array_key_exists( 'phiCheck', $_SESSION ) ) ? $_SESSION['phiCheck'] : time();
   $this->_data = ( array_key_exists( 'phiData', $_SESSION ) ) ? unserialize( $_SESSION['phiData'] ) : array();
@@ -27,17 +17,21 @@ public function __construct ( $sessionlife=null, $secureOnly=true ) {
 }
 
 public function __destruct () {
-  @session_start();
-  $_SESSION['phiCheck'] = time();
-  $_SESSION['phiData'] = serialize( $this->_data );
-  session_write_close();
+  if ($this->_changed) {
+    @session_start();
+    $_SESSION['phiCheck'] = time();
+    $_SESSION['phiData'] = serialize( $this->_data );
+    session_write_close();
+  }
 }
 
 public function save () {
-  @session_start();
-  $_SESSION['phiCheck'] = time();
-  $_SESSION['phiData'] = serialize( $this->_data );
-  session_write_close();
+  if ($this->_changed) {
+    @session_start();
+    $_SESSION['phiCheck'] = time();
+    $_SESSION['phiData'] = serialize( $this->_data );
+    session_write_close();
+  }
 }
 
 public function destroy () {
@@ -61,6 +55,7 @@ public function clear () {
   foreach ( $this->_data as $key => $val ) {
     unset( $this->_data[$key] );
   }
+  $this->_changed = true;
 }
 
 public function offsetSet( $offset, $value ) {
@@ -69,6 +64,7 @@ public function offsetSet( $offset, $value ) {
   } else {
     $this->_data[$offset] = $value;
   }
+  $this->_changed = true;
 }
 
 public function offsetExists ( $offset ) {
@@ -77,6 +73,7 @@ public function offsetExists ( $offset ) {
 
 public function offsetUnset ( $offset ) {
   unset( $this->_data[$offset] );
+  $this->_changed = true;
 }
 
 public function offsetGet ( $offset ) {

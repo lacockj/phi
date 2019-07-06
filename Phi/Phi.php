@@ -3,14 +3,15 @@
 public $errors = array();
 
 private $TEMP_DIR = "/com.lakehawksolutions.Phi";
-private $SESSION_LIFE = null; # expire when browser closes
+private $SESSION_LIFE = 0; # expire when browser closes
+public  $SESSION_PATH = '/'; # all paths on domain
 private $ROUTE_BASE = "";
 private $ROUTES_INI = "";
 private $DB_CONFIG = null;
 private $AUTH_CONFIG = null;
 private $ALLOW_ORIGIN = null;
 
-private $configurable = array( 'SESSION_LIFE', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG', 'ALLOW_ORIGIN', 'JWT_CONFIG' );
+private $configurable = array( 'SESSION_LIFE', 'SESSION_PATH', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG', 'ALLOW_ORIGIN', 'JWT_CONFIG' );
 private $autoloadDirs = array();
 private $request = null;
 private $response = null;
@@ -88,7 +89,7 @@ public function __get ( $name ) {
 
     case "session":
       $secureOnly = ( array_key_exists( 'AUTH_CONFIG', $this->config ) && array_key_exists( 'REQUIRE_HTTPS', $this->config['AUTH_CONFIG'] ) ) ? $this->config['AUTH_CONFIG']['REQUIRE_HTTPS'] : true;
-      if ( $this->session === null ) $this->session = new \Phi\Session( $this->SESSION_LIFE, $secureOnly );
+      if ( $this->session === null ) $this->session = new \Phi\Session( $this->SESSION_LIFE, $this->SESSION_PATH, $secureOnly );
       return $this->session;
 
     case "db":
