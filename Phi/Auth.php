@@ -345,8 +345,8 @@ public function getGroupByApiKey ($apiKey) {
 # JSON Web Token Authorization Methods #
 ########################################
 
-public function getPublicKeys () {
-  $phi = $this->phi;
+public static function getPublicKeys () {
+  $phi = \Phi::instance();
   // First, check the database for current keys.
   try {
     $now = time();
@@ -386,8 +386,8 @@ public function getPublicKeys () {
   return $publicKeys;
 }
 
-public function verifyJwt ($token, $projectName) {
-  $phi = $this->phi;
+public static function verifyJwt ($token, $projectName) {
+  $phi = \Phi::instance();
 
   $publicKeys = self::getPublicKeys();
   if (!is_array($publicKeys)) {

@@ -423,4 +423,41 @@ protected static function compareAcceptQ ( $a, $b ) {
   return ($a[1]==$b[1])?1:(($a[1]>$b[1])?-1:1);
 }
 
+/**
+ * Uploaded Files
+ * @param string $inputName - (optional) Name of form input element for which to return file info.
+ * @return array
+ */
+public function files($inputName) {
+  $allInputNames = array_keys($_FILES);
+  $files = [];
+
+  if (!in_array($inputName, $allInputNames)) {
+    throw new Exception("No file input named \"$inputName\" found in uploaded files. Check spelling of input element name, the form enctype=\"multipart/form-data\", and multiple file inputs have \"[]\" at the end of their name.");
+  }
+
+  // Multiple-Files Input
+  if (is_array($_FILES[$inputName]['error'])) {
+    foreach ($_FILES[$inputName]['error'] as $i=>$error) {
+      if (!$error) {
+        $files[] = [
+          'name'     => $_FILES[$inputName]['name'][$i],
+          'type'     => $_FILES[$inputName]['type'][$i],
+          'tmp_name' => $_FILES[$inputName]['tmp_name'][$i],
+          'error'    => $_FILES[$inputName]['error'][$i],
+          'size'     => $_FILES[$inputName]['size'][$i]
+        ];
+      }
+    }
+  }
+
+  // Single-File Input
+  elseif (!$_FILES[$inputName]['error']) {
+    $files[] = $_FILES[$inputName];
+  }
+
+  return $files;
+}
+
+
 }?>

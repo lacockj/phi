@@ -2,7 +2,9 @@
 
 public $errors = array();
 
+const DEBUG_LOG = "../var/phi_debug.log";
 private $TEMP_DIR = "/com.lakehawksolutions.Phi";
+
 private $SESSION_LIFE = 0; # expire when browser closes
 public  $SESSION_PATH = '/'; # all paths on domain
 private $ROUTE_BASE = "";
@@ -244,14 +246,14 @@ public static function all_set () {
 
 public static function log ( $text, $overwrite=false ) {
   if ( $overwrite ) {
-    file_put_contents( 'debug.log', $text.PHP_EOL );
+    file_put_contents( self::DEBUG_LOG, $text.PHP_EOL );
   } else {
-    file_put_contents( 'debug.log', $text.PHP_EOL, FILE_APPEND );
+    file_put_contents( self::DEBUG_LOG, $text.PHP_EOL, FILE_APPEND );
   }
 }
 
 public static function log_json ( $data ) {
-  file_put_contents( 'debug.log', json_encode( $data, JSON_PRETTY_PRINT ).PHP_EOL, FILE_APPEND );
+  file_put_contents( self::DEBUG_LOG, json_encode( $data, JSON_PRETTY_PRINT ).PHP_EOL, FILE_APPEND );
 }
 
 
