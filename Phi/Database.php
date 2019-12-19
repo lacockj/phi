@@ -311,7 +311,7 @@ public function bulk_insert($opts) {
   } else {
     $max_block_size = 1000;
   }
-  # Max Block Size
+  # Update Duplicates
   if (array_key_exists('update_dups', $opts)) {
     $update_dups = $opts['update_dups'];
   } else {

@@ -171,8 +171,8 @@ public function challenge ( $realm="standard" ) {
 public function checkAuthorization ( $authorization=null ) {
   if (!$authorization) $authorization = $this->phi->request->headers('Authorization');
   if (!$authorization) {
-    // \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
-    // \Phi::log_json( $this->phi->request->headers() );
+    \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
+    \Phi::log_json( $this->phi->request->headers() );
     return null;
   }
   $authScheme = \Phi::strpop( $authorization );
@@ -223,7 +223,7 @@ public function checkAuthorization ( $authorization=null ) {
 }
 
 public function checkConnectionSecurity () {
-  if ( $this->REQUIRE_HTTPS && !$this->phi->request->isHTTPS() ){
+  if ( $this->REQUIRE_HTTPS && !( $this->phi->request->isLocalhost() || $this->phi->request->isHTTPS() ) ){
     \Phi::log(date('c').' Request refused from '.\Phi\Request::ip().' (required HTTPS)');
     return false;
   }
@@ -366,7 +366,14 @@ public static function getPublicKeys () {
   // Need new keys? Get from public listing.
   try {
     $response = $phi->fetch($phi->config['JWT_CONFIG']['PUBLIC_KEY_LISTING'], [CURLOPT_HEADER => true]);
-    $expires = strtotime($response['headers']['Expires']);
+    // $phi->log_json(['fetchJwtResponse' => $response]);
+    if (array_key_exists('Expires', $response['headers'])) {
+      $expires = strtotime($response['headers']['Expires']);
+    } elseif (array_key_exists('expires', $response['headers'])) {
+      $expires = strtotime($response['headers']['expires']);
+    } else {
+      $expires = date('r'); // Now
+    }
     $publicKeys = json_decode($response['body'], true);
   }
   catch (\Exception $e) {

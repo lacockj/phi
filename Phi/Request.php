@@ -310,6 +310,10 @@ public static function isAJAX () {
   return self::isXHR();
 }
 
+public static function isLocalhost () {
+  return ( isset($_SERVER['SERVER_NAME']) && strtolower($_SERVER['SERVER_NAME']) === "localhost" );
+}
+
 public static function isHTTPS () {
   return ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === "on" );
 }
@@ -433,7 +437,7 @@ public function files($inputName) {
   $files = [];
 
   if (!in_array($inputName, $allInputNames)) {
-    throw new Exception("No file input named \"$inputName\" found in uploaded files. Check spelling of input element name, the form enctype=\"multipart/form-data\", and multiple file inputs have \"[]\" at the end of their name.");
+    throw new \Exception("No file input named \"$inputName\" found in uploaded files. Check spelling of input element name, the form enctype=\"multipart/form-data\", and multiple file inputs have \"[]\" at the end of their name.");
   }
 
   // Multiple-Files Input
@@ -458,6 +462,5 @@ public function files($inputName) {
 
   return $files;
 }
-
 
 }?>

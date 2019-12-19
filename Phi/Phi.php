@@ -283,11 +283,12 @@ public function fetch ( $url, $headers = array() ) {
     if ($response === false) {
       $this->log("cURL error ".curl_errno($ch)." ".curl_error($ch)." getting $url HTTP code ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
     }
-    curl_close ($ch);
 
     // Parse response headers if user asked for them.
     if ( $options[CURLOPT_HEADER] == true ) {
       $responseHeaders = [];
+      $responseHeaders['Request-URL'] = $url;
+      $responseHeaders['Status-Code'] = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
       while ( $thisHeader = self::strpop($response, "\r\n") ) {
         if ( preg_match( '/(\S+)\:\s*(.+)/', $thisHeader, $matches) ) {
           $responseHeaders[$matches[1]] = $matches[2];
@@ -295,13 +296,15 @@ public function fetch ( $url, $headers = array() ) {
           $responseHeaders[] = $thisHeader;
         }
       }
-      return [
+      $return = [
         'headers' => $responseHeaders,
         'body'    => $response
       ];
     } else {
-      return $response;
+      $return = $response;
     }
+    curl_close ($ch);
+    return $return;
   }
   // Fall back to fopen() if cURL is not available
   else if ( ini_get('allow_url_fopen') ) {

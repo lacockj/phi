@@ -267,6 +267,15 @@ public static function htmlTableRows ( $data, $code=200, $text="" ) {
   }
 }
 
+public static function file ( $filename, $code=200, $reason="" ) {
+  if (file_exists($filename) && is_file($filename) && is_readable($filename)) {
+    self::status( $code, $reason );
+    header('Content-Type: ' . mime_content_type($filename));
+    header('Content-Length: ' . filesize($filename));
+    readfile($filename);
+  }
+}
+
 
 # Data Management Methods #
 
