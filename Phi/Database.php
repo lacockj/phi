@@ -84,6 +84,14 @@ public function lastError () {
  *                                        or FALSE if there was an error.
  */
 public function pq ( $sql, $params=null, $types=null ) {
+  if (!parent::ping()) {
+    $this->errors[] = array(
+      'operation' => 'mysqli ping',
+      'errno' => null,
+      'error' => "Lost connection to database and couldn't reconnect."
+    );
+    return false;
+  }
 
   # Prepare the query. #
   if (! is_string($sql) ) {
@@ -267,7 +275,7 @@ public function table_fields ( $table ) {
  * Prepare and execute a bulk-insert query on the database.
  * @param array  $opts                   - Bulk-insert options...
  * @param string $opts['tbl_name']       - Table name
- * @param array  $opts['col_names]       - Column names
+ * @param array  $opts['col_names']      - Column names
  * @param array  $opts['data']           - The data to insert, an array or associative arrays.
  * @param string $opts['value_markers']  - (optional) Custom inser value markers; defaults to one '?' for each column.
  * @param string $opts['types']          - (optional) Data types of the parameters, one character per parameter;
@@ -381,7 +389,7 @@ public function bulk_insert($opts) {
  * Prepare and execute bulk-inserts from source file.
  * @param array  $opts                   - Bulk-insert options...
  * @param string $opts['tbl_name']       - Table name
- * @param array  $opts['col_names]       - Column names
+ * @param array  $opts['col_names']      - Column names
  * @param object #opts['filehandle']     - The input file, a CSV, first line is column headings.
  * @param string $opts['value_markers']  - (optional) Custom inser value markers; defaults to one '?' for each column.
  * @param string $opts['types']          - (optional) Data types of the parameters, one character per parameter;
