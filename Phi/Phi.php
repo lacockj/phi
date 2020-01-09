@@ -2,10 +2,10 @@
 
 public $errors = array();
 
-const DEBUG_LOG = "../var/phi_debug.log";
+const DEBUG_LOG = "./debug.log";
 private $TEMP_DIR = "/com.lakehawksolutions.Phi";
 
-private $SESSION_LIFE = 0; # expire when browser closes
+private $SESSION_LIFE = 43200; # 12 hours
 public  $SESSION_PATH = '/'; # all paths on domain
 private $ROUTE_BASE = "";
 private $ROUTES_INI = "";
@@ -53,7 +53,7 @@ public function __construct ( $configFile=null ) {
   $this->addAutoloadDir( dirname( dirname(__FILE__) ) );  # Same as Phi
   // $this->addAutoloadDir( "." );   # Same as Execution
 
-  header( "Access-Control-Allow-Credentials: true" );
+  // header( "Access-Control-Allow-Credentials: true" );
 }
 
 /**

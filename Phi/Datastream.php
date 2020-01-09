@@ -182,7 +182,7 @@ public function fieldTypes ( $newFieldTypes=null ) {
   return $this->fieldTypes;
 }
 
-private function _revertFields ( &$row ) {
+private function _revertFields ( &$row=null ) {
   if ( $row === null ) $row = &$this->row;
   foreach ( $this->fieldTypes['int'] as $field ) {
     if ( array_key_exists( $field, $row ) )

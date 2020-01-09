@@ -1,7 +1,7 @@
 {
   "name": "phi",
-  "version": "0.1.1",
-  "description": "Highly-efficient HTTP routing classes for PHP",
+  "version": "0.1.2",
+  "description": "A fast, easy-to-use micro-framework balancing speed, convenience, and security.",
   "main": "Phi.php",
   "scripts": {
     "test": "grunt travis -v"
