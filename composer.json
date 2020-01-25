@@ -2,6 +2,6 @@
     "name": "lacockj/phi",
     "description": "A fast, easy-to-use micro-framework balancing speed, convenience, and security.",
     "require": {
-        "php": "^5.6"
+        "php": "^5.6 || ^7.0"
     }
 }
