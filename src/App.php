@@ -1,4 +1,4 @@
-<?php class Phi {
+<?php class App {
 
 public $errors = array();
 
