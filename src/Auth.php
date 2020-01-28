@@ -21,7 +21,7 @@ private $phi;
 private $db;
 private $user;
 
-public function __construct ( \Phi $phi, $config ) {
+public function __construct ($phi, $config) {
   $this->phi = $phi;
   if ( isset($config) ) {
     if ( isset($config['DB']) && $phi->all_set( $config['DB'], 'HOST', 'USER', 'PASS', 'NAME' ) ) {
@@ -171,16 +171,16 @@ public function challenge ( $realm="standard" ) {
 public function checkAuthorization ( $authorization=null ) {
   if (!$authorization) $authorization = $this->phi->request->headers('Authorization');
   if (!$authorization) {
-    \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
-    \Phi::log_json( $this->phi->request->headers() );
+    \Phi\App::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
+    \Phi\App::log_json( $this->phi->request->headers() );
     return null;
   }
-  $authScheme = \Phi::strpop( $authorization );
+  $authScheme = \Phi\App::strpop( $authorization );
   switch ( strtolower($authScheme) ) {
     case "basic":
     case "phi":
       $credentials = base64_decode( $authorization );
-      $username = \Phi::strpop( $credentials, ":" );
+      $username = \Phi\App::strpop( $credentials, ":" );
       $pass = $credentials;
       $user = $this->getUser( $username );
       # Verify User's Credentials
@@ -189,14 +189,14 @@ public function checkAuthorization ( $authorization=null ) {
           $this->user = $user;
           return $user;
         } else {
-          \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (incorrect password)');
+          \Phi\App::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (incorrect password)');
           return false;
         }
       }
       # Pretend To Verify Nonexistant User's Credentials
       else {
         password_verify( 'Missing User', '$2a$08$nqWza8jri7gZmOKYubrLrOVbEZTbEzXnbkJ.ad/2.RlbsbMQxPVO.' );
-        \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (unknown username)');
+        \Phi\App::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (unknown username)');
         return false;
       }
       break;
@@ -211,8 +211,8 @@ public function checkAuthorization ( $authorization=null ) {
       }
       break;
     default:
-      \Phi::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (unsupported authenticaiton scheme)');
-      \Phi::log_json([
+      \Phi\App::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (unsupported authenticaiton scheme)');
+      \Phi\App::log_json([
         $this->phi->request->headers(),
         $this->phi->request->headers('Authorization'),
         $authorization,
@@ -224,11 +224,11 @@ public function checkAuthorization ( $authorization=null ) {
 
 public function checkConnectionSecurity () {
   if ( $this->REQUIRE_HTTPS && !( $this->phi->request->isLocalhost() || $this->phi->request->isHTTPS() ) ){
-    \Phi::log(date('c').' Request refused from '.\Phi\Request::ip().' (required HTTPS)');
+    \Phi\App::log(date('c').' Request refused from '.\Phi\Request::ip().' (required HTTPS)');
     return false;
   }
   if ( !$this->phi->request->isAllowedOrigin() ){
-    \Phi::log(date('c').' Request refused from '.\Phi\Request::ip().' (not allowed origin)');
+    \Phi\App::log(date('c').' Request refused from '.\Phi\Request::ip().' (not allowed origin)');
     return false;
   }
   return true;
@@ -346,7 +346,7 @@ public function getGroupByApiKey ($apiKey) {
 ########################################
 
 public static function getPublicKeys () {
-  $phi = \Phi::instance();
+  $phi = \Phi\App::instance();
   // First, check the database for current keys.
   try {
     $now = time();
@@ -394,7 +394,7 @@ public static function getPublicKeys () {
 }
 
 public static function verifyJwt ($token, $projectName) {
-  $phi = \Phi::instance();
+  $phi = \Phi\App::instance();
 
   $publicKeys = self::getPublicKeys();
   if (!is_array($publicKeys)) {
@@ -409,7 +409,7 @@ public static function verifyJwt ($token, $projectName) {
   catch(\Exception $e) {
     throw $e;
   }
-  // \Phi::log_json($payload);
+  // \Phi\App::log_json($payload);
 
   // Verify Token
   $now = time();

@@ -11,7 +11,7 @@ private $routes = null;
 private $allowedMethods = array( 'GET','POST','PATCH','DELETE','PUT','HEAD','OPTIONS' );
 private $defaultRouteMethod = 'GET';
 
-public function __construct ( \Phi $phi ) {
+public function __construct ($phi) {
   $this->phi = $phi;
   self::loadRoutes( $phi->routesINI, $phi->routeBase );
 }
@@ -94,7 +94,7 @@ public function loadRoutes ( $routesINI, $routeBase="" ) {
 
   # No Routes #
   else {
-    \Phi::log(date('c').': Routes config file does not exist.');
+    \Phi\App::log(date('c').': Routes config file does not exist.');
     //throw new \Exception('Routes config file does not exist.');
   }
 }
