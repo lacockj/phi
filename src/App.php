@@ -1,7 +1,5 @@
 <?php
-
 namespace Phi;
-
 class App {
 
 public $errors = array();
