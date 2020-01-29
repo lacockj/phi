@@ -1,4 +1,6 @@
-<?php class Phi {
+<?php
+namespace Phi;
+class App {
 
 public $errors = array();
 
@@ -36,7 +38,6 @@ public function __construct ( $configFile=null ) {
   # Register Autoloader
   spl_autoload_register(function($className){
     $classFile = "/" . str_replace("\\", "/", $className) . ".php";
-    if ( __NAMESPACE__ ) $classFile = "/" . str_replace("\\", "/", __NAMESPACE__) . $classFile;
     foreach( $this->autoloadDirs as $thisDir ) {
       $source = $thisDir . $classFile;
       if ( file_exists( $source ) ) {
@@ -48,12 +49,6 @@ public function __construct ( $configFile=null ) {
 
   # Initial Configuration (all but SESSION_LIFE can be changed later)
   if ( $configFile ) $this->configure( $configFile );
-
-  # Standard Autoload Directories
-  $this->addAutoloadDir( dirname( dirname(__FILE__) ) );  # Same as Phi
-  // $this->addAutoloadDir( "." );   # Same as Execution
-
-  // header( "Access-Control-Allow-Credentials: true" );
 }
 
 /**

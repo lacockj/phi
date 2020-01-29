@@ -1,8 +1,8 @@
 {
   "name": "phi",
-  "version": "0.1.2",
+  "version": "1.0.1",
   "description": "A fast, easy-to-use micro-framework balancing speed, convenience, and security.",
-  "main": "Phi.php",
+  "main": "App.php",
   "scripts": {
     "test": "grunt travis -v"
   },

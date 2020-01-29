@@ -36,7 +36,7 @@ function __construct ($opts=null) {
   }
   # Check if file type is supported.
   if (!$this->filetype) {
-    $phi = \Phi::instance();
+    $phi = \Phi\App::instance();
     $this->filetype = strtolower($phi->request->headers('Content-Type'));
   }
   if (!($this->filetype && in_array($this->filetype, $this->supportedTypes))) {
