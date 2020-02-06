@@ -3,7 +3,7 @@ language: php
 php:
   - '7.3'
   - '7.4'
-  - hhvm
+  # - hhvm # on Trusty only (new/current default is Bionic, ie. "dist: bionic")
   - nightly
 install:
   - composer install --no-interaction --prefer-source
