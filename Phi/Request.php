@@ -7,66 +7,66 @@ const IP_FORWARDED = 2;
 const IP_BOTH      = 3;
 
 private $phi;
-private $routes;
-private $allowedMethods = array( 'OPTIONS', 'GET', 'HEAD', 'POST', 'PUT', 'DELETE' );
+private $routes = null;
+private $allowedMethods = array( 'GET','POST','PATCH','DELETE','PUT','HEAD','OPTIONS' );
 private $defaultRouteMethod = 'GET';
 
 public function __construct ( \Phi $phi ) {
   $this->phi = $phi;
-  self::loadRoutes( $phi->ROUTES_INI );
-}
-
-public function routes ( $routes ) {
-  if ( is_array($routes) ) $this->routes = $routes;
-  return $this->routes;
+  self::loadRoutes( $phi->routesINI );
 }
 
 public function loadRoutes ( $routesINI ) {
+  $debug = false;
+  $routesSER = $this->phi->tempDir . "/" . md5( $routesINI );
 
-  $routesJSON = $this->phi->TEMP_DIR . "/" . md5( $routesINI );
-  //$phi->log( "$routesINI\n$routesJSON\n" );
-  //if ( true ) {
-  if ( file_exists($routesINI) && !( file_exists($routesJSON) && filectime($routesJSON) >= filectime($routesINI) ) ) {
-    //echo "Loading from INI<br>";
-    $this->routes = array(
-      '_m_' => array(),
-      '_r_' => array()
-    );
-    $preRoutes = parse_ini_file( $routesINI );
-    //$phi->log_json( $preRoutes );
-    foreach ( $preRoutes as $route => $handler ) {
+  # New/Updated Routes INI #
+  if ( file_exists($routesINI) && !( file_exists($routesSER) && filectime($routesSER) >= filectime($routesINI) ) ) {
+    if ( $this->routes === null ) $this->routes = array();
+    $routeDefs = parse_ini_file( $routesINI );
+    foreach ( $routeDefs as $route => $handler ) {
+
+      # URI Path Nodes #
       $here = &$this->routes;
       $path = self::path( $route );
-      //$phi->log_json( $path );
-      for ( $i=0, $c=count($path); $i<=$c; $i++ ) {
-        if ( $i === $c ) {
-          if ( !array_key_exists('_m_', $here) ) $here['_m_'] = array();
-          if ( is_array($handler) ) {
-            foreach ( $handler as $method => $methodHandler ) {
-              $here['_m_'][$method] = $methodHandler;
-            }
-          } else {
-            $here['_m_'][$this->defaultRouteMethod] = $handler;
-          }
-        } else {
+      foreach ( $path as $node ) {
+        if ( $node ) {
           if ( !array_key_exists('_r_', $here) ) $here['_r_'] = array();
-          if ( strpos($path[$i], '@') === 0 ) {
-            if ( !array_key_exists('*', $here['_r_']) ) $here['_r_']['*'] = array( '_v_' => substr($path[$i], 1) );
-            $here = &$here['_r_']['*'];
+          if ( strpos($node, '@') === 0 ) {
+            if ( !array_key_exists('@', $here['_r_']) ) $here['_r_']['@'] = array( '_v_' => substr($node, 1) );
+            $here = &$here['_r_']['@'];
           } else {
-            if ( !array_key_exists($path[$i], $here['_r_']) ) $here['_r_'][$path[$i]] = array();
-            $here = &$here['_r_'][$path[$i]];
+            if ( !array_key_exists($node, $here['_r_']) ) $here['_r_'][$node] = array();
+            $here = &$here['_r_'][$node];
           }
         }
       }
+
+      # Methods #
+      if ( !array_key_exists('_m_', $here) ) $here['_m_'] = array();
+      # Specific-Mathod Handlers #
+      if ( is_array($handler) ) {
+        foreach ( $handler as $method => $methodHandler ) {
+          $here['_m_'][$method] = $methodHandler;
+        }
+      }
+      # All-Methods Handler #
+      else {
+        $here['_m_']['@'] = $handler;
+      }
     }
-    //echo "put: ", json_encode( file_put_contents( $routesJSON, json_encode($this->routes) ) ), "\n";
-    file_put_contents( $routesJSON, json_encode($this->routes) );
+
+    if ( $debug ) $this->phi->log_json( $this->routes );
+    file_put_contents( $routesSER, serialize($this->routes) );
   }
-  elseif ( file_exists($routesJSON) ) {
-    //echo "Loading from JSON<br>";
-    $this->routes = json_decode( file_get_contents( $routesJSON ), true );
-  } else {
+
+  # Up-to-date Pre-Parsed Routes #
+  elseif ( file_exists($routesSER) ) {
+    $this->routes = unserialize( file_get_contents( $routesSER ) );
+  }
+
+  # No Routes #
+  else {
     throw new \Exception('Routes config file does not exist.');
   }
 }
@@ -77,57 +77,70 @@ public function run ( $uri=null, $method=null ) {
   if ( is_string($uri) ) $path = self::path( $uri );
   if ( $method===null ) $method = self::method();
   $method = strtoupper( $method );
+  if ( $debug ) {
+    $this->phi->log( "URI: $uri" );
+    $this->phi->log_json( $path );
+    $this->phi->log( "Method: $method" );
+  }
   $uriParams = array();
   $here = &$this->routes;
-  if ( is_array($path) ) {
-    for ( $i=0, $c=count($path); $i<=$c; $i++ ) {
 
-      # End of request path.
-      if ( $i === $c ) {
-        if ( array_key_exists('_m_', $here) ) {
-          if ( array_key_exists($method, $here['_m_']) ) {
-            $handler = $here['_m_'][$method];
-          } elseif ( array_key_exists('*', $here['_m_']) ) {
-            $handler = $here['_m_']['*'];
-          } elseif ( $method === 'OPTIONS' ) {
-            $routeMethods = array_keys( $here['_m_'] );
-            if ( count($routeMethods) === 1 && $routeMethods[0] === '*' ) $routeMethods = $this->allowedMethods;
-            $this->phi->response->allow( $routeMethods );
-          } else {
-            $this->lastError = 405;
-            $routeMethods = array_keys( $here['_m_'] );
-            if ( count($routeMethods) === 1 && $routeMethods[0] === '*' ) $routeMethods = $this->allowedMethods;
-            $this->phi->response->method_not_allowed( $routeMethods );
-            return false;
-          }
-          if ( $debug ) $this->phi->log("Checking if $handler is callable...");
-          if ( isset($handler) && is_callable($handler) ) {
-            if ( $debug ) $this->phi->log("  It is.");
-            call_user_func( $handler, $uriParams, $this->input() );
-          } else {
-            if ( $debug ) $this->phi->log("  It isn't.");
-            $this->lastError = 500;
-            return false;
-          }
-        }
+  # Request Path Nodes #
+  foreach ( $path as $node ) {
+    if ( $debug ) $this->phi->log( "Node: $node" );
+    if ( array_key_exists( '_r_', $here ) && array_key_exists( $node, $here['_r_'] ) ) {
+      if ( $debug ) $this->phi->log( "- named route" );
+      $here = &$here['_r_'][$node];
+    } elseif ( array_key_exists( '_r_', $here ) && array_key_exists( '@', $here['_r_'] ) ) {
+      if ( $debug ) $this->phi->log( "- wild route" );
+      $here = &$here['_r_']['@'];
+      if ( array_key_exists( '_v_', $here ) ) {
+        $uriParams[$here['_v_']] = $node;
       }
-
-      # Comparing nodes of defined routes with request path.
-      else {
-        if ( array_key_exists( '_r_', $here ) && array_key_exists( $path[$i], $here['_r_'] ) ) {
-          $here = &$here['_r_'][$path[$i]];
-        } elseif ( array_key_exists( '_r_', $here ) && array_key_exists( '*', $here['_r_'] ) ) {
-          $here = &$here['_r_']['*'];
-          if ( array_key_exists( '_v_', $here ) ) {
-            $uriParams[$here['_v_']] = $path[$i];
-          }
-        } else {
-          $this->lastError = 404;
-          return false;
-        }
-      }
+    } else {
+      if ( $debug ) $this->phi->log( "- no route" );
+      $this->phi->response->status( 404 );
+      $this->lastError = 404;
+      return false;
     }
   }
+
+  # Missing Handlers? #
+  if ( ! array_key_exists('_m_', $here) ) {
+    if ( $debug ) {
+      $this->phi->log( "Method not found." );
+      $this->phi->log_json( $here );
+    }
+    $this->phi->response->method_not_allowed( "" );
+    return false;
+  }
+
+  # Request Handler #
+  if ( array_key_exists($method, $here['_m_']) ) {
+    $handler = $here['_m_'][$method];
+  } elseif ( array_key_exists('@', $here['_m_']) ) {
+    $handler = $here['_m_']['@'];
+  } elseif ( $method === 'OPTIONS' ) {
+    $routeMethods = array_keys( $here['_m_'] );
+    if ( count($routeMethods) === 1 && $routeMethods[0] === '@' ) $routeMethods = $this->allowedMethods;
+    $this->phi->response->allow( $routeMethods );
+  } else {
+    $this->lastError = 405;
+    $routeMethods = array_keys( $here['_m_'] );
+    if ( count($routeMethods) === 1 && $routeMethods[0] === '@' ) $routeMethods = $this->allowedMethods;
+    $this->phi->response->method_not_allowed( $routeMethods );
+    return false;
+  }
+  if ( $debug ) $this->phi->log("Checking if $handler is callable...");
+  if ( isset($handler) && is_callable($handler) ) {
+    if ( $debug ) $this->phi->log("  It is.");
+    call_user_func( $handler, $uriParams, $this->input() );
+  } else {
+    if ( $debug ) $this->phi->log("  It isn't.");
+    $this->lastError = 500;
+    return false;
+  }
+
 }
 
 /**

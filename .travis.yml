@@ -1,0 +1,18 @@
+---
+language: php
+php:
+  - '5.4'
+  - '5.5'
+  - '5.6'
+  - '7.0'
+  - hhvm
+  - nightly
+install:
+  - composer install --no-interaction --prefer-source
+before_script:
+  - npm install -g grunt-cli
+  - npm install
+  - if find . -name "*.php" ! -path "./vendor/*" -exec php -l {} 2>&1 \; | grep "syntax error, unexpected"; then exit 1; fi
+script:
+  - grunt travis -v
+  - vendor/phploc/phploc/phploc Phi

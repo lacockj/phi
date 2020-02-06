@@ -1,0 +1,23 @@
+{
+  "name": "phi",
+  "version": "0.1.1",
+  "description": "Highly-efficient HTTP routing classes for PHP",
+  "main": "Phi.php",
+  "scripts": {
+    "test": "grunt travis -v"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brianoflan/phi.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/brianoflan/phi/issues"
+  },
+  "homepage": "https://github.com/brianoflan/phi#readme",
+  "devDependencies": {
+    "grunt": "^1.0.1",
+    "grunt-contrib-jshint": "^1.0.0"
+  }
+}

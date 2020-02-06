@@ -5,6 +5,7 @@
 public $errors = array();
 
 protected $safeFunctions = array("CURRENT_TIMESTAMP()", "NOW()");
+protected $storeResult = false;
 
 /**
  * Connect to a database.
@@ -21,21 +22,14 @@ function __construct () {
 
     case 1:
       $config = func_get_arg(0);
-      # Single string argument? Must be the name of a config file.
-      if ( is_string($config) ) {
-        $config = \Phi::pathTo( $config );
-        if ( ! file_exists( $config ) ) {
-          throw new \Exception("Phi::Database configuration file not found.", 1);
-        }
-        $config = parse_ini_file( $config );
-      }
-      if (!( is_array( $config ) && array_key_exists('HOST', $config) && array_key_exists('USER', $config) && array_key_exists('PASS', $config) && array_key_exists('NAME', $config) ) ) {
+      if ( \Phi::all_set( $config, 'HOST', 'USER', 'PASS', 'NAME' ) ) {
+        $HOST = $config['HOST'];
+        $USER = $config['USER'];
+        $PASS = $config['PASS'];
+        $NAME = $config['NAME'];
+      } else {
         throw new \Exception("Configuration Array must have HOST, USER, PASS, and NAME", 1);
       }
-      $HOST = $config['HOST'];
-      $USER = $config['USER'];
-      $PASS = $config['PASS'];
-      $NAME = $config['NAME'];
       break;
 
     case 4:
@@ -60,6 +54,10 @@ function __construct () {
     $this->errors[] = "Error loading character set utf8: " . $this->error;
   }
 
+}
+
+public function storeResult ( $storeResult=true ) {
+  $this->storeResult = (bool)$storeResult;
 }
 
 public function lastError () {
@@ -123,6 +121,9 @@ public function pq ( $sql, $params=null, $types=null ) {
       'error' => $this->error
     );
     return false;
+  }
+  if ( $this->storeResult ) {
+    $stmt->store_result();
   }
 
   # Return results based on query type. #

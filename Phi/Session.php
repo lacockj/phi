@@ -15,7 +15,7 @@ public function __construct ( $sessionlife ) {
   session_start();
   setcookie(session_name(),session_id(),time()+$sessionlife);
   $this->_id = session_id();
-  $this->_data = self::array_copy( $_SESSION );
+  $this->_data = \Phi::array_copy( $_SESSION );
   session_write_close();
 }
 
@@ -58,18 +58,8 @@ public function offsetGet ( $offset ) {
   return isset( $this->_data[$offset] ) ? $this->_data[$offset] : null;
 }
 
-public function array_copy ( array $original ) {
-  $copy = array();
-  foreach( $original as $key => $val ) {
-    if( is_array( $val ) ) {
-      $copy[$key] = self::array_copy( $val );
-    } elseif ( is_object( $val ) ) {
-      $copy[$key] = clone $val;
-    } else {
-      $copy[$key] = $val;
-    }
-  }
-  return $copy;
+public function toArray () {
+  return $this->_data;
 }
 
 }?>
