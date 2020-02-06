@@ -14,4 +14,4 @@ script:
   - bash tests/lint.sh
   - vendor/bin/phpunit tests
   - grunt travis -v
-  - vendor/phploc/phploc/phploc Phi
+  - vendor/phploc/phploc/phploc src
