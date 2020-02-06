@@ -2,7 +2,13 @@
 
 # Phi
 
-Phi is a fast, easy-to-use PHP framework that endeavors to be the perfect balance between the _speed_ of core PHP functions, the _convenience_ of class methods, and _security_ of coding best-practices. Phi includes methods for request routing, database queries, authentication, and response formatting.
+Phi is a fast, easy-to-use micro-framework for PHP that endeavors to be the perfect balance between the _speed_ of core PHP functions, the _convenience_ of class methods, and the _security_ of coding best-practices.
+
+Phi includes handy methods for
+* Request routing
+* Parameterized database queries
+* HTTP authentication
+* Automatic response data formatting
 
 Read the full documentation on the [Phi Wiki](https://github.com/lacockj/phi/wiki)
 
@@ -21,12 +27,12 @@ Clean URLs look better for webpage addresses, and are easier to use and understa
 You create a list of URL patterns and request methods, and map them to whatever function or class method you want to handle the request. When a request matches a listed pattern, the handler function is called, receiving the URL parameters and input data. Input data could be GET query parameters, POST form data, or php://input.
 
 ```
-/users         [POST]  = Users::createNewUser
-/users/@userID [GET]   = Users::getUserByID
-/users/@userID [PATCH] = Users::updateUser
+/users         [POST]  = Users->createNewUser
+/users/@userID [GET]   = Users->getUserByID
+/users/@userID [PATCH] = Users->updateUser
 ```
 
-Phi automatically responds to requests that don't match a URL pattern with the appropriate "404" Not Found status code. Similarly, an unexpected request method automatically gets a "405" Method Not Allowed status code and the `Allow:` response header with a list of the methods you do have in the list, in accordance with [RFC 2616].
+Phi automatically responds to requests that don't match a URL pattern with the appropriate 404 "Not Found" status code. Similarly, an unexpected request method automatically gets a 405 "Method Not Allowed" status code and the `Allow:` response header with a list of the methods you do have in the list, in accordance with [RFC 2616].
 
 ---
 
@@ -42,7 +48,7 @@ if ( $myDataArray ) {
 }
 ```
 
-Using the headers and status codes makes it easier for your API's consumers to know when a request succeded or failed, and handle the response appropriately. All this information is already part of the [HTTP definition][RFC 2616], why not use it?
+Using the headers and status codes makes it easier for your API's consumers to know when a request succeded or failed in a standarized way, and handle the response appropriately. All this information is already part of the [HTTP definition][RFC 2616], why not use it?
 
 ---
 

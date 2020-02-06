@@ -1,2 +1,5 @@
+.DS_Store
+Phi/.DS_Store
+config/.DS_Store
 node_modules
 vendor
