@@ -20,6 +20,7 @@ protected $API_TABLE = array(
 private $phi;
 private $db;
 private $user;
+private $testKey;
 
 public function __construct ($phi, $config) {
   $this->phi = $phi;
@@ -37,6 +38,14 @@ public function __construct ($phi, $config) {
     }
     if ( isset($config['API_TABLE']) && \Phi\Tools::all_set( $config['API_TABLE'], 'NAME', 'KEY' ) ) {
       $this->API_TABLE = $config['API_TABLE'];
+    }
+    if (isset($config['ENABLE_TEST_AUTH'])) {
+      $enabled = (bool) $config['ENABLE_TEST_AUTH'];
+      if (isset($config['TEST_AUTH_KEY']) && $config['TEST_AUTH_KEY']
+        && $enabled
+      ) {
+        $this->testKey = $config['TEST_AUTH_KEY'];
+      }
     }
   }
 }
@@ -199,6 +208,14 @@ public function checkAuthorization ( $authorization=null ) {
         \Phi\Tools::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (unknown username)');
         return false;
       }
+      break;
+    case "test":
+      $givenKey = \Phi\Tools::str_shift($authorization);
+      $userid = \Phi\Tools::str_shift($authorization);
+      if (!$this->testKey || $this->testKey != $givenKey) {
+        return false;
+      }
+      return $this->getUser($userid);
       break;
     case "bearer":
       try {
