@@ -1,18 +1,12 @@
 ---
 language: php
 php:
-  - '5.4'
-  - '5.5'
-  - '5.6'
-  - '7.0'
-  - hhvm
-  - nightly
+  - '7.3'
+  - '7.4'
+  # - hhvm # on Trusty only (new/current default is Bionic, ie. "dist: bionic")
+  # - nightly # nightly is now v. 8.0.0-dev; no version of phpunit accepts anything above ^7
 install:
   - composer install --no-interaction --prefer-source
-before_script:
-  - npm install -g grunt-cli
-  - npm install
-  - if find . -name "*.php" ! -path "./vendor/*" -exec php -l {} 2>&1 \; | grep "syntax error, unexpected"; then exit 1; fi
 script:
-  - grunt travis -v
-  - vendor/phploc/phploc/phploc Phi
+  - bash tests/lint.sh
+  - vendor/bin/phpunit tests

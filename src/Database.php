@@ -24,7 +24,7 @@ function __construct () {
 
     case 1:
       $config = func_get_arg(0);
-      if ( \Phi\App::all_set( $config, 'HOST', 'USER', 'PASS', 'NAME' ) ) {
+      if ( \Phi\Tools::all_set( $config, 'HOST', 'USER', 'PASS', 'NAME' ) ) {
         $HOST = $config['HOST'];
         $USER = $config['USER'];
         $PASS = $config['PASS'];

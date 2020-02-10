@@ -2,9 +2,6 @@
 namespace Phi;
 class Tools {
 
-public static $DEBUG_LOG = "./debug.log";
-public static $TEMP_DIR  = "/com.lakehawksolutions.Phi";
-
 /**
  * Get Path to File
  * 
@@ -136,14 +133,14 @@ public static function all_set () {
 
 public static function log ( $text, $overwrite=false ) {
   if ( $overwrite ) {
-    file_put_contents( self::$DEBUG_LOG, $text.PHP_EOL );
+    file_put_contents( \Phi\App::$DEBUG_LOG, $text.PHP_EOL );
   } else {
-    file_put_contents( self::$DEBUG_LOG, $text.PHP_EOL, FILE_APPEND );
+    file_put_contents( \Phi\App::$DEBUG_LOG, $text.PHP_EOL, FILE_APPEND );
   }
 }
 
 public static function log_json ( $data ) {
-  file_put_contents( self::$DEBUG_LOG, json_encode( $data, JSON_PRETTY_PRINT ).PHP_EOL, FILE_APPEND );
+  file_put_contents( \Phi\App::$DEBUG_LOG, json_encode( $data, JSON_PRETTY_PRINT ).PHP_EOL, FILE_APPEND );
 }
 
 
@@ -179,7 +176,7 @@ public function fetch ( $url, $headers = array() ) {
       $responseHeaders = [];
       $responseHeaders['Request-URL'] = $url;
       $responseHeaders['Status-Code'] = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-      while ( $thisHeader = self::strpop($response, "\r\n") ) {
+      while ( $thisHeader = self::str_shift($response, "\r\n") ) {
         if ( preg_match( '/(\S+)\:\s*(.+)/', $thisHeader, $matches) ) {
           $responseHeaders[$matches[1]] = $matches[2];
         } else {

@@ -24,7 +24,7 @@ private $user;
 public function __construct ($phi, $config) {
   $this->phi = $phi;
   if ( isset($config) ) {
-    if ( isset($config['DB']) && $phi->all_set( $config['DB'], 'HOST', 'USER', 'PASS', 'NAME' ) ) {
+    if ( isset($config['DB']) && \Phi\Tools::all_set( $config['DB'], 'HOST', 'USER', 'PASS', 'NAME' ) ) {
       $this->db = new \Phi\Database( $config['DB'] );
     } else {
       $this->db = $this->phi->db;
@@ -32,10 +32,10 @@ public function __construct ($phi, $config) {
     if ( isset($config['REQUIRE_HTTPS']) ) {
       $this->REQUIRE_HTTPS = (bool) $config['REQUIRE_HTTPS'];
     }
-    if ( isset($config['TABLE']) && $phi->all_set( $config['TABLE'], 'NAME', 'USER', 'PASS' ) ) {
+    if ( isset($config['TABLE']) && \Phi\Tools::all_set( $config['TABLE'], 'NAME', 'USER', 'PASS' ) ) {
       $this->TABLE = $config['TABLE'];
     }
-    if ( isset($config['API_TABLE']) && $phi->all_set( $config['API_TABLE'], 'NAME', 'KEY' ) ) {
+    if ( isset($config['API_TABLE']) && \Phi\Tools::all_set( $config['API_TABLE'], 'NAME', 'KEY' ) ) {
       $this->API_TABLE = $config['API_TABLE'];
     }
   }
@@ -111,7 +111,7 @@ public function createUser ( $userID, $pass, $extras=null ) {
   }
   $result = $this->db->pq( 'INSERT INTO `'.$this->TABLE['NAME'].'` (`'.implode('`,`', $columns).'`) VALUES ('.implode(',', $placeholders).')', $values );
   if ( !$result ) {
-    $this->phi->log_json( $this->db->lastError() );
+    \Phi\Tools::log_json( $this->db->lastError() );
   }
   return (bool) $result;
 }
@@ -131,7 +131,7 @@ public function updateUserPass ( $userID, $pass ) {
     )
   );
   if ( !$result ) {
-    $this->phi->log_json( $this->db->lastError() );
+    \Phi\Tools::log_json( $this->db->lastError() );
   }
   return (bool) $result;
 }
@@ -154,7 +154,7 @@ public function getUser ( $userID ) {
 public function deleteUser ( $userID ) {
   $result = $this->db->pq( 'DELETE FROM `'.$this->TABLE['NAME'].'` WHERE `'.$this->TABLE['USER'].'`=?', $userID );
   if ( !$result ) {
-    $this->phi->log_json( $this->db->lastError() );
+    \Phi\Tools::log_json( $this->db->lastError() );
   }
   return (bool) $result;
 }
@@ -171,16 +171,16 @@ public function challenge ( $realm="standard" ) {
 public function checkAuthorization ( $authorization=null ) {
   if (!$authorization) $authorization = $this->phi->request->headers('Authorization');
   if (!$authorization) {
-    \Phi\App::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
-    \Phi\App::log_json( $this->phi->request->headers() );
+    \Phi\Tools::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (missing authenticaiton header)');
+    \Phi\Tools::log_json( $this->phi->request->headers() );
     return null;
   }
-  $authScheme = \Phi\App::strpop( $authorization );
+  $authScheme = \Phi\Tools::str_shift( $authorization );
   switch ( strtolower($authScheme) ) {
     case "basic":
     case "phi":
       $credentials = base64_decode( $authorization );
-      $username = \Phi\App::strpop( $credentials, ":" );
+      $username = \Phi\Tools::str_shift( $credentials, ":" );
       $pass = $credentials;
       $user = $this->getUser( $username );
       # Verify User's Credentials
@@ -189,14 +189,14 @@ public function checkAuthorization ( $authorization=null ) {
           $this->user = $user;
           return $user;
         } else {
-          \Phi\App::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (incorrect password)');
+          \Phi\Tools::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (incorrect password)');
           return false;
         }
       }
       # Pretend To Verify Nonexistant User's Credentials
       else {
         password_verify( 'Missing User', '$2a$08$nqWza8jri7gZmOKYubrLrOVbEZTbEzXnbkJ.ad/2.RlbsbMQxPVO.' );
-        \Phi\App::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (unknown username)');
+        \Phi\Tools::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' as "'.$username.'" (unknown username)');
         return false;
       }
       break;
@@ -211,8 +211,8 @@ public function checkAuthorization ( $authorization=null ) {
       }
       break;
     default:
-      \Phi\App::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (unsupported authenticaiton scheme)');
-      \Phi\App::log_json([
+      \Phi\Tools::log(date('c').' Failed login attempt from '.\Phi\Request::ip().' (unsupported authenticaiton scheme)');
+      \Phi\Tools::log_json([
         $this->phi->request->headers(),
         $this->phi->request->headers('Authorization'),
         $authorization,
@@ -224,11 +224,11 @@ public function checkAuthorization ( $authorization=null ) {
 
 public function checkConnectionSecurity () {
   if ( $this->REQUIRE_HTTPS && !( $this->phi->request->isLocalhost() || $this->phi->request->isHTTPS() ) ){
-    \Phi\App::log(date('c').' Request refused from '.\Phi\Request::ip().' (required HTTPS)');
+    \Phi\Tools::log(date('c').' Request refused from '.\Phi\Request::ip().' (required HTTPS)');
     return false;
   }
   if ( !$this->phi->request->isAllowedOrigin() ){
-    \Phi\App::log(date('c').' Request refused from '.\Phi\Request::ip().' (not allowed origin)');
+    \Phi\Tools::log(date('c').' Request refused from '.\Phi\Request::ip().' (not allowed origin)');
     return false;
   }
   return true;
@@ -366,7 +366,7 @@ public static function getPublicKeys () {
   // Need new keys? Get from public listing.
   try {
     $response = $phi->fetch($phi->config['JWT_CONFIG']['PUBLIC_KEY_LISTING'], [CURLOPT_HEADER => true]);
-    // $phi->log_json(['fetchJwtResponse' => $response]);
+    // \Phi\Tools::log_json(['fetchJwtResponse' => $response]);
     if (array_key_exists('Expires', $response['headers'])) {
       $expires = strtotime($response['headers']['Expires']);
     } elseif (array_key_exists('expires', $response['headers'])) {
@@ -409,7 +409,7 @@ public static function verifyJwt ($token, $projectName) {
   catch(\Exception $e) {
     throw $e;
   }
-  // \Phi\App::log_json($payload);
+  // \Phi\Tools::log_json($payload);
 
   // Verify Token
   $now = time();
