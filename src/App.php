@@ -4,8 +4,8 @@ class App {
 
 public $errors = array();
 
-const DEBUG_LOG = "./debug.log";
-private $TEMP_DIR = "/com.lakehawksolutions.Phi";
+public static $DEBUG_LOG = "./debug.log";
+public static $TEMP_DIR  = "/com.lakehawksolutions.Phi";
 
 private $SESSION_LIFE = 43200; # 12 hours
 public  $SESSION_PATH = '/'; # all paths on domain
@@ -115,7 +115,7 @@ public function configure ( $configFile=null ) {
 
   # Read config file
   if ( is_string($configFile) ) {
-    $configFile = self::pathTo( $configFile );
+    $configFile = \Phi\Tools::pathTo( $configFile );
     if ( file_exists($configFile) ) $config = parse_ini_file( $configFile, true );
   }
   elseif (is_array($configFile)) {
@@ -145,7 +145,7 @@ public function configure ( $configFile=null ) {
 
   # Use full, real paths
   if ( is_string( $this->ROUTES_INI ) && $this->ROUTES_INI ) {
-    $this->ROUTES_INI = self::pathTo( $this->ROUTES_INI );
+    $this->ROUTES_INI = \Phi\Tools::pathTo( $this->ROUTES_INI );
     $this->TEMP_DIR = sys_get_temp_dir() . $this->TEMP_DIR;
     if (! is_dir( $this->TEMP_DIR ) ) mkdir( $this->TEMP_DIR, 0777, true );
   }
@@ -154,9 +154,9 @@ public function configure ( $configFile=null ) {
 
 public function addAutoloadDir ( $dirname, $toFront=false ) {
   if ( $toFront ) {
-    array_unshift( $this->autoloadDirs, self::pathTo( $dirname ) );
+    array_unshift( $this->autoloadDirs, \Phi\Tools::pathTo( $dirname ) );
   } else {
-    array_push( $this->autoloadDirs, self::pathTo( $dirname ) );
+    array_push( $this->autoloadDirs, \Phi\Tools::pathTo( $dirname ) );
   }
 }
 
@@ -177,161 +177,6 @@ public function run ( $uri=null, $method=null ) {
 
 public function lastError () {
   return (count($this->errors)) ? $this->errors[count($this->errors)-1] : null;
-}
-
-public static function pathTo ( $relativeFileName ) {
-  if ( !empty( $_SERVER['DOCUMENT_ROOT'] ) ) {
-    return realpath( $_SERVER['DOCUMENT_ROOT'] . "/" . ltrim( $relativeFileName, "/" ) );
-  } else {
-    return realpath( "./" . ltrim( $relativeFileName, "/" ) );
-  }
-}
-
-# Utility Functions #
-
-public static function strpop ( &$str, $sep=" " ) {
-  if ( !( is_string($str) && $str ) ) return false;
-  $pos = strpos( $str, $sep );
-  if ( $pos === false ) {
-    $pop = $str;
-    $str = "";
-  } else {
-    $pop = substr( $str, 0, $pos );
-    $str = substr( $str, $pos+strlen($sep) );
-  }
-  return $pop;
-}
-
-public static function array_copy ( array $original ) {
-  $copy = array();
-  foreach( $original as $key => $val ) {
-    if( is_array( $val ) ) {
-      $copy[$key] = self::array_copy( $val );
-    } elseif ( is_object( $val ) ) {
-      $copy[$key] = clone $val;
-    } else {
-      $copy[$key] = $val;
-    }
-  }
-  return $copy;
-}
-
-public static function all_set () {
-  $args = func_get_args();
-  if ( !( count($args) && is_array( $args[0] ) ) ) return null;
-  $subject = array_shift( $args );
-  while ( count($args) ) {
-    $comp = array_shift( $args );
-    if ( is_string( $comp ) ) {
-      if ( empty( $subject[$comp] ) ) return false;
-    } elseif ( is_array( $comp ) ) {
-      foreach ( $comp as $subcomp ) {
-        if ( is_string( $subcomp ) ) {
-          if ( empty( $subject[$subcomp] ) ) return false;
-        } else {
-          return null;
-        }
-      }
-    }
-  }
-  return true;
-}
-
-# Logging Functions #
-
-public static function log ( $text, $overwrite=false ) {
-  if ( $overwrite ) {
-    file_put_contents( self::DEBUG_LOG, $text.PHP_EOL );
-  } else {
-    file_put_contents( self::DEBUG_LOG, $text.PHP_EOL, FILE_APPEND );
-  }
-}
-
-public static function log_json ( $data ) {
-  file_put_contents( self::DEBUG_LOG, json_encode( $data, JSON_PRETTY_PRINT ).PHP_EOL, FILE_APPEND );
-}
-
-
-# Fetch contents of URL. #
-public function fetch ( $url, $headers = array() ) {
-  // Use cURL to fetch data by default
-  if ( function_exists('curl_init') ) {
-
-    // Defatult Options //
-    $options = array(
-      CURLOPT_RETURNTRANSFER => true,    // return content
-      CURLOPT_HEADER         => false,   // don't return headers
-      CURLOPT_ENCODING       => "",      // handle all encodings
-      CURLOPT_CONNECTTIMEOUT => 30,      // timeout on connect
-      CURLOPT_TIMEOUT        => 30,      // timeout on response
-      CURLOPT_SSL_VERIFYPEER => false    // Disabled SSL Cert checks
-    );
-    // Custom Options //
-    foreach($headers as $key => $value) {
-      $options[$key] = $value;
-    }
-
-    $ch = curl_init( $url );
-    curl_setopt_array( $ch, $options );
-
-    $response = curl_exec($ch);
-    if ($response === false) {
-      $this->log("cURL error ".curl_errno($ch)." ".curl_error($ch)." getting $url HTTP code ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
-    }
-
-    // Parse response headers if user asked for them.
-    if ( $options[CURLOPT_HEADER] == true ) {
-      $responseHeaders = [];
-      $responseHeaders['Request-URL'] = $url;
-      $responseHeaders['Status-Code'] = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-      while ( $thisHeader = self::strpop($response, "\r\n") ) {
-        if ( preg_match( '/(\S+)\:\s*(.+)/', $thisHeader, $matches) ) {
-          $responseHeaders[$matches[1]] = $matches[2];
-        } else {
-          $responseHeaders[] = $thisHeader;
-        }
-      }
-      $return = [
-        'headers' => $responseHeaders,
-        'body'    => $response
-      ];
-    } else {
-      $return = $response;
-    }
-    curl_close ($ch);
-    return $return;
-  }
-  // Fall back to fopen() if cURL is not available
-  else if ( ini_get('allow_url_fopen') ) {
-    $response = file_get_contents($url, 'r');
-    return $response;
-  }
-  return false;
-}
-
-
-# Generate a string to random letters (upper and lower-case) and numbers. #
-public static function randomAlphanumeric ($length=1) {
-  $chars = array();
-  for ($i = 0; $i < $length; $i++) {
-    switch (rand(0,2)) {
-      # number
-      case 0:
-        $chars[] = chr(rand(48,57));
-        break;
-
-      # upper-case
-      case 1:
-        $chars[] = chr(rand(65,90));
-        break;
-
-      # lower-case
-      case 2:
-        $chars[] = chr(rand(97,122));
-        break;
-    }
-  }
-  return implode('', $chars);
 }
 
 }?>

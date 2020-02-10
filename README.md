@@ -72,3 +72,11 @@ Impact to the script's speed is minimal; the results are not all loaded into mem
 
 [RFC 2616]: https://www.w3.org/Protocols/rfc2616/rfc2616.html
 [PHP mysqli]: https://php.net/manual/en/mysqli.prepare.php
+
+---
+
+## Testing
+
+```
+./vendor/bin/phpunit tests
+```
