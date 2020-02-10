@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/brianoflan/phi.svg?branch=master)](https://travis-ci.org/brianoflan/phi)
+[![Build Status](https://travis-ci.org/lacockj/phi.svg?branch=master)](https://travis-ci.org/lacockj/phi)
 
 # Phi
 
