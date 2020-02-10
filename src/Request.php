@@ -372,8 +372,13 @@ public static function input () {
       $input = $_REQUEST;
     }
   }
-  if ( get_magic_quotes_gpc() ) {
-    $input = self::stripslashes_deep( $input );
+  $phpVersion = phpversion();
+  $split = explode('.', $phpVersion);
+  if ($split[0] < 5 || ($split[0] == 5 && $split[1] < 3)) {
+    # NOTE: get_magic_quotes_gpc() throws warnings in 5.4+ and deprecation errors in 7.4+
+    if ( get_magic_quotes_gpc() ) {
+      $input = self::stripslashes_deep( $input );
+    }
   }
   return $input;
 }
