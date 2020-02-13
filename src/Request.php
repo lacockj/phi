@@ -368,6 +368,17 @@ public static function input () {
       $input = $_GET;
     } elseif ( $method === "POST" ) {
       $input = $_POST;
+    } elseif ( $method === "PATCH") {
+      if (!$_REQUEST) {
+        $raw = file_get_contents("php://input");
+        if ($raw) {
+          $input = json_decode($raw, true);
+          if (is_null($input)) {
+            $input = [];
+            parse_str($raw, $input);
+          }
+        }
+      }
     } else {
       $input = $_REQUEST;
     }
