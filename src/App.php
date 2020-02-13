@@ -62,7 +62,7 @@ public function __get ( $name ) {
   switch ( $name ) {
 
     case "tempDir":
-      return $this->TEMP_DIR;
+      return static::$TEMP_DIR;
 
     case "autoloadDirs":
       return $this->autoloadDirs;
@@ -146,8 +146,8 @@ public function configure ( $configFile=null ) {
   # Use full, real paths
   if ( is_string( $this->ROUTES_INI ) && $this->ROUTES_INI ) {
     $this->ROUTES_INI = \Phi\Tools::pathTo( $this->ROUTES_INI );
-    $this->TEMP_DIR = sys_get_temp_dir() . $this->TEMP_DIR;
-    if (! is_dir( $this->TEMP_DIR ) ) mkdir( $this->TEMP_DIR, 0777, true );
+    static::$TEMP_DIR = sys_get_temp_dir() . static::$TEMP_DIR;
+    if (! is_dir( static::$TEMP_DIR ) ) mkdir( static::$TEMP_DIR, 0777, true );
   }
 
 }
