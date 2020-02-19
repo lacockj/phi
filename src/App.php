@@ -5,7 +5,7 @@ class App {
 public $errors = array();
 
 public static $DEBUG_LOG = "./debug.log";
-public $TEMP_DIR  = "/com.lakehawksolutions.Phi";
+public static $TEMP_DIR  = "/com.lakehawksolutions.Phi";
 
 private $SESSION_LIFE = 43200; # 12 hours
 public  $SESSION_PATH = '/'; # all paths on domain

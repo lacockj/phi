@@ -42,7 +42,7 @@ final class AppTest extends TestCase {
 
   public function testAllowedOrigins()
   {
-    $this->assertIsNull( $this->app->allowedOrigins );
+    $this->assertNull( $this->app->allowedOrigins );
   }
 
 }
