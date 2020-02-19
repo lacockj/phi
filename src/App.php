@@ -5,7 +5,7 @@ class App {
 public $errors = array();
 
 public static $DEBUG_LOG = "./debug.log";
-public static $TEMP_DIR  = "/com.lakehawksolutions.Phi";
+public $TEMP_DIR  = "/com.lakehawksolutions.Phi";
 
 private $SESSION_LIFE = 43200; # 12 hours
 public  $SESSION_PATH = '/'; # all paths on domain
@@ -15,8 +15,8 @@ private $DB_CONFIG = null;
 private $AUTH_CONFIG = null;
 private $ALLOW_ORIGIN = null;
 
-private $configurable = array( 'SESSION_LIFE', 'SESSION_PATH', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG', 'ALLOW_ORIGIN', 'JWT_CONFIG' );
-private $autoloadDirs = array();
+private $configurable = ['SESSION_LIFE', 'SESSION_PATH', 'ROUTE_BASE', 'ROUTES_INI', 'DB_CONFIG', 'AUTH_CONFIG', 'ALLOW_ORIGIN', 'JWT_CONFIG'];
+private $autoloadDirs = [];
 private $request = null;
 private $response = null;
 private $db = null;
@@ -105,6 +105,33 @@ public function __get ( $name ) {
     default:
       return null;
   }
+}
+
+/**
+ * Magic callable methods
+ * Forwards function calls for Phi Tools.
+ * @param string $name - The method name.
+ * @param array  $args - The method arguments.
+ * @return mixed
+ */
+public function __call ( $name, $args ) {
+
+  $fullMethodName = '\Phi\Tools::' . $name;
+  if (is_callable($fullMethodName)) {
+    return call_user_func_array($fullMethodName, $args);
+  }
+
+  // switch ( $name ) {
+
+  //   case "log":
+  //     return call_user_func_array('\Phi\Tools::log', $args);
+
+  //   case "log_json":
+  //     return call_user_func_array('\Phi\Tools::log_json', $args);
+
+  //   default:
+  //     return null;
+  // }
 }
 
 public static function instance () {
