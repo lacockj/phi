@@ -107,33 +107,6 @@ public function __get ( $name ) {
   }
 }
 
-/**
- * Magic callable methods
- * Forwards function calls for Phi Tools.
- * @param string $name - The method name.
- * @param array  $args - The method arguments.
- * @return mixed
- */
-public function __call ( $name, $args ) {
-
-  $fullMethodName = '\Phi\Tools::' . $name;
-  if (is_callable($fullMethodName)) {
-    return call_user_func_array($fullMethodName, $args);
-  }
-
-  // switch ( $name ) {
-
-  //   case "log":
-  //     return call_user_func_array('\Phi\Tools::log', $args);
-
-  //   case "log_json":
-  //     return call_user_func_array('\Phi\Tools::log_json', $args);
-
-  //   default:
-  //     return null;
-  // }
-}
-
 public static function instance () {
   return static::$_instance;
 }
@@ -204,6 +177,38 @@ public function run ( $uri=null, $method=null ) {
 
 public function lastError () {
   return (count($this->errors)) ? $this->errors[count($this->errors)-1] : null;
+}
+
+// Phi Tools Convenience Methods //
+
+/**
+ * Magic callable methods
+ * Forwards function calls for Phi Tools.
+ * @param string $name - The method name.
+ * @param array  $args - The method arguments.
+ * @return mixed
+ */
+public function __call ( $name, $args ) {
+  switch ( $name ) {
+
+    // case "str_pop":
+    // case "str_shift":
+    //   return ...
+
+    default:
+      $fullMethodName = '\Phi\Tools::' . $name;
+      if (is_callable($fullMethodName)) {
+        return call_user_func_array($fullMethodName, $args);
+      }
+  }
+}
+
+public static function str_pop ( &$str, $sep=" " ) {
+  return \Phi\Tools::str_pop($str, $sep);
+}
+
+public static function str_shift ( &$str, $sep=" " ) {
+  return \Phi\Tools::str_shift($str, $sep);
 }
 
 }?>
