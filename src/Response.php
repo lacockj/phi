@@ -57,6 +57,7 @@ public static function content_ndjson () {
 public static function allow_origin ( $origin ) {
   header( "Access-Control-Allow-Origin: $origin" );
   header( "Access-Control-Allow-Headers: Authorization, Content-Type, X-Api-Key, X-Guest-Key" );
+  header( "Access-Control-Allow-Credentials: true" );
 }
 
 
@@ -105,6 +106,9 @@ public static function json ( $data, $code=200, $reason="", $headers=null ) {
   self::status( $code, $reason );
   header('Content-type: application/json');
   if ( $headers ) self::headers( $headers );
+  if (version_compare(phpversion(), '7.1', '>=')) {
+    ini_set( 'serialize_precision', -1 );
+  }
   if ( is_object( $data ) ) {
     # Object implements Iterator
     if($data instanceof \Iterator) {
@@ -157,6 +161,9 @@ public static function ndjson ( $data, $code=200, $reason="", $headers=null ) {
   self::status( $code, $reason );
   header('Content-type: application/x-ndjson');
   if ( $headers ) self::headers( $headers );
+  if (version_compare(phpversion(), '7.1', '>=')) {
+    ini_set( 'serialize_precision', -1 );
+  }
   if ( is_object( $data ) ) {
     # Object implements Iterator
     if($data instanceof \Iterator) {
