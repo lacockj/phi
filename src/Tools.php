@@ -168,7 +168,7 @@ public function fetch ( $url, $headers = array() ) {
 
     $response = curl_exec($ch);
     if ($response === false) {
-      $this->log("cURL error ".curl_errno($ch)." ".curl_error($ch)." getting $url HTTP code ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
+      self::log("cURL error ".curl_errno($ch)." ".curl_error($ch)." getting $url HTTP code ".curl_getinfo($ch, CURLINFO_HTTP_CODE));
     }
 
     // Parse response headers if user asked for them.
