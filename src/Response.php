@@ -56,7 +56,7 @@ public static function content_ndjson () {
 
 public static function allow_origin ( $origin ) {
   header( "Access-Control-Allow-Origin: $origin" );
-  header( "Access-Control-Allow-Headers: Authorization, Content-Type, X-Api-Key, X-Guest-Key" );
+  header( "Access-Control-Allow-Headers: Authorization, Content-Type, If-Modified-Since, If-None-Match, X-Api-Key, X-Guest-Key" );
   header( "Access-Control-Allow-Credentials: true" );
 }
 
