@@ -67,6 +67,7 @@ public static function allow_cache ( $mtime, $etag="", $maxAge=0, $private=false
   $privacy = ($private) ? 'private' : 'public';
   header( "Cache-Control: $privacy, max-age=$maxAge" );
   header( "Last-Modified: ".gmdate("D, d M Y H:i:s", $mtime)." GMT");
+  header( "Access-Control-Expose-Headers: ETag" );
   header( "ETag: $etag" );
 }
 

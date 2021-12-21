@@ -117,7 +117,11 @@ public function pq ( $sql, $params=null, $types=null ) {
     if ( is_scalar( $params ) ) $params = array( $params ); # Recast single, scalar param as single-element array. #
     if (! $types) $types = str_repeat('s', count($params)); # Default to string parameters. #
     $bind_params = array();
-    foreach ( $params as &$p ) $bind_params[] = &$p; # Bound parameters must be passed by reference. #
+    foreach ( $params as &$p ) {
+      if (!is_scalar($p)) $p = json_encode($p);
+      $bind_params[] = &$p; # Bound parameters must be passed by reference. #
+    }
+    unset($p);
     array_unshift( $bind_params, $types );
     if (! call_user_func_array( array($stmt, "bind_param"), $bind_params )) {
       $this->errors[] = array(
