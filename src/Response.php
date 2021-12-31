@@ -63,6 +63,10 @@ public static function allow_origin ( $origin ) {
 
 # Cache-Control Methods #
 
+public static function no_cache () {
+  header('Cache-Control: no-store, no-cache, must-revalidate');
+}
+
 public static function allow_cache ( $mtime, $etag="", $maxAge=0, $private=false ) {
   $privacy = ($private) ? 'private' : 'public';
   header( "Cache-Control: $privacy, max-age=$maxAge" );
