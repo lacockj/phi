@@ -56,17 +56,22 @@ public static function content_ndjson () {
 
 public static function allow_origin ( $origin ) {
   header( "Access-Control-Allow-Origin: $origin" );
-  header( "Access-Control-Allow-Headers: Authorization, Content-Type, X-Api-Key, X-Guest-Key" );
+  header( "Access-Control-Allow-Headers: Authorization, Content-Type, If-Modified-Since, If-None-Match, X-Api-Key, X-Guest-Key" );
   header( "Access-Control-Allow-Credentials: true" );
 }
 
 
 # Cache-Control Methods #
 
+public static function no_cache () {
+  header('Cache-Control: no-store, no-cache, must-revalidate');
+}
+
 public static function allow_cache ( $mtime, $etag="", $maxAge=0, $private=false ) {
   $privacy = ($private) ? 'private' : 'public';
   header( "Cache-Control: $privacy, max-age=$maxAge" );
   header( "Last-Modified: ".gmdate("D, d M Y H:i:s", $mtime)." GMT");
+  header( "Access-Control-Expose-Headers: ETag" );
   header( "ETag: $etag" );
 }
 
