@@ -29,13 +29,14 @@ function __construct () {
         $USER = $config['USER'];
         $PASS = $config['PASS'];
         $NAME = $config['NAME'];
-        $PORT = array_key_exists('POST', $config) ? $config['PORT'] : ini_get("mysqli.default_port");
+        $PORT = array_key_exists('PORT', $config) ? $config['PORT'] : ini_get("mysqli.default_port");
       } else {
         throw new \Exception("Configuration Array must have HOST, USER, PASS, and NAME", 1);
       }
       break;
 
     case 4:
+    case 5:
       $config = func_get_args();
       $HOST = $config[0];
       $USER = $config[1];
@@ -57,6 +58,9 @@ function __construct () {
   if (!parent::set_charset("utf8")) {
     $this->errors[] = "Error loading character set utf8: " . $this->error;
   }
+
+  # Set Timezone
+  parent::query('SET time_zone = "+00:00"');
 
 }
 
@@ -151,6 +155,7 @@ public function pq ( $sql, $params=null, $types=null ) {
     case "SELECT":
     case "SHOW":
     case "DESCRIBE":
+      if (is_bool($stmt)) return $stmt;
       if ( $this->storeResult ) {
         $stmt->store_result();
       }
@@ -182,6 +187,7 @@ public function pq ( $sql, $params=null, $types=null ) {
     # Return true for CREATE and DROP because if it didn't work it would have errored at execute step. #
     case "CREATE":
     case "DROP":
+    case "ALTER":
       return true;
       break;
 
@@ -281,7 +287,7 @@ public function table_fields ( $table ) {
  * @param string $opts['tbl_name']       - Table name
  * @param array  $opts['col_names']      - Column names
  * @param array  $opts['data']           - The data to insert, an array or associative arrays.
- * @param string $opts['value_markers']  - (optional) Custom inser value markers; defaults to one '?' for each column.
+ * @param string $opts['value_markers']  - (optional) Custom insert value markers; defaults to one '?' for each column.
  * @param string $opts['types']          - (optional) Data types of the parameters, one character per parameter;
  *                                         defaults to one 's' for each column;
  *                                         ('s':string, 'i':integer, 'd':double, 'b':blob)
@@ -332,8 +338,14 @@ public function bulk_insert($opts) {
   if ($update_dups) {
     # ON DUPLICATE KEY UPDATE `col1`=VALUES(`col1`), `col2`=VALUES(`col2`)
     $update_list = [];
-    foreach ($opts['col_names'] as $col_name) {
-      $update_list[] = "`$col_name`=VALUES(`$col_name`)";
+    if (is_array($update_dups)) {
+      foreach ($opts['update_dups'] as $col_name) {
+        $update_list[] = "`$col_name`=VALUES(`$col_name`)";
+      }
+    } else {
+      foreach ($opts['col_names'] as $col_name) {
+        $update_list[] = "`$col_name`=VALUES(`$col_name`)";
+      }
     }
     $update_stmt = ' ON DUPLICATE KEY UPDATE ' . implode(',', $update_list);
   } else {
@@ -341,7 +353,7 @@ public function bulk_insert($opts) {
   }
   # Data
   if (!(array_key_exists('data', $opts) && is_array($opts['data']) && count($opts['data']))) {
-    throw new Exception("Option data must be included, and be an array of arrays.");
+    throw new \Exception("Option data must be included, and be an array of arrays.");
   }
 
   # While data remains
@@ -355,7 +367,7 @@ public function bulk_insert($opts) {
     # Build query blocks.
     $value_markers_block = '(' . implode('),(', array_fill(0, count($dataSlice), $value_markers)) . ')';
     $types_block = implode('', array_fill(0, count($dataSlice), $types));
-    
+
     # Prepare the query.
     $query = "INSERT INTO `$tbl_name` ($col_name_list) VALUES $value_markers_block $update_stmt";
     if (! $stmt = parent::prepare($query) ) {
@@ -378,10 +390,15 @@ public function bulk_insert($opts) {
     }
 
     # Execute the query. #
-    if ($stmt->execute()) {
-      if ( $stmt->affected_rows ) {
-        $inserted += $stmt->affected_rows;
-      }
+    if (! $stmt->execute()) {
+      $this->errors[] = array(
+        'operation' => 'mysqli execute',
+        'errno' => $this->errno,
+        'error' => $this->error
+      );
+    }
+    elseif ( $stmt->affected_rows ) {
+      $inserted += $stmt->affected_rows;
     }
 
   }
@@ -394,7 +411,7 @@ public function bulk_insert($opts) {
  * @param array  $opts                   - Bulk-insert options...
  * @param string $opts['tbl_name']       - Table name
  * @param array  $opts['col_names']      - Column names
- * @param object #opts['filehandle']     - The input file, a CSV, first line is column headings.
+ * @param object $opts['filehandle']     - The input file, a CSV, first line is column headings.
  * @param string $opts['value_markers']  - (optional) Custom inser value markers; defaults to one '?' for each column.
  * @param string $opts['types']          - (optional) Data types of the parameters, one character per parameter;
  *                                         defaults to one 's' for each column;
@@ -504,4 +521,4 @@ public function bulk_insert_csv($opts) {
   return $inserted;
 }
 
-} ?>
+} # end of class

@@ -135,4 +135,4 @@ private function readNdjson () {
 }
 
 
-} ?>
+} # end of class

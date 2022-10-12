@@ -56,7 +56,7 @@ public static function content_ndjson () {
 
 public static function allow_origin ( $origin ) {
   header( "Access-Control-Allow-Origin: $origin" );
-  header( "Access-Control-Allow-Headers: Authorization, Content-Type, If-Modified-Since, If-None-Match, X-Api-Key, X-Guest-Key" );
+  header( "Access-Control-Allow-Headers: Authorization, Cache-Control, Content-Type, If-Modified-Since, If-None-Match, X-Api-Key, X-Guest-Key" );
   header( "Access-Control-Allow-Credentials: true" );
 }
 
@@ -336,6 +336,21 @@ public static function openEventStream () {
   header('Cache-Control: no-cache');
 }
 
+public static function sendEvent ( $event, $id=null ) {
+  if ($id && is_scalar($id)) echo "id: " . $id . PHP_EOL;
+  if ($event && is_scalar($event)) echo "event: " . $event . PHP_EOL . PHP_EOL;
+  ob_end_flush();
+  flush();
+}
+
+public static function sendEventText ( $text, $event=null, $id=null ) {
+  if ($id && is_scalar($id)) echo "id: " . $id . PHP_EOL;
+  if ($event && is_scalar($event)) echo "event: " . $event . PHP_EOL;
+  echo "data: " . $text . PHP_EOL . PHP_EOL;
+  ob_end_flush();
+  flush();
+}
+
 public static function sendEventJson ( $data, $event=null, $id=null ) {
   if ($id && is_scalar($id)) echo "id: " . $id . PHP_EOL;
   if ($event && is_scalar($event)) echo "event: " . $event . PHP_EOL;
@@ -344,4 +359,4 @@ public static function sendEventJson ( $data, $event=null, $id=null ) {
   flush();
 }
 
-}?>
+} # end of class
