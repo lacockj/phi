@@ -84,4 +84,4 @@ public function toArray () {
   return $this->_data;
 }
 
-}?>
+} # end of class

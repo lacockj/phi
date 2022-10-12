@@ -38,6 +38,7 @@ public function __construct ( $configFile=null ) {
   # Register Autoloader
   spl_autoload_register(function($className){
     $classFile = "/" . str_replace("\\", "/", $className) . ".php";
+    if ( __NAMESPACE__ ) $classFile = "/" . str_replace("\\", "/", __NAMESPACE__) . $classFile;
     foreach( $this->autoloadDirs as $thisDir ) {
       $source = $thisDir . $classFile;
       if ( file_exists( $source ) ) {
@@ -49,6 +50,12 @@ public function __construct ( $configFile=null ) {
 
   # Initial Configuration (all but SESSION_LIFE can be changed later)
   if ( $configFile ) $this->configure( $configFile );
+
+  # Standard Autoload Directories
+  $this->addAutoloadDir( dirname( dirname(__FILE__) ) );  # Same as Phi
+  // $this->addAutoloadDir( "." );   # Same as Execution
+
+  // header( "Access-Control-Allow-Credentials: true" );
 }
 
 /**
@@ -168,7 +175,7 @@ public function loadRoutes ( $routesIniFile=null, $routeBase="" ) {
 
 public function run ( $uri=null, $method=null ) {
   if ( $this->request === null ) $this->loadRoutes();
-  if ( ! $this->request->isAllowedOrigin() ) {
+  if ( !($uri || $this->request->isAllowedOrigin() ) ) {
     self::log('Rejecting request. '.$this->request->sourceOrigin().' is not in allowed origins: '.json_encode($this->allowedOrigins));
     return false;
   }
@@ -211,4 +218,4 @@ public static function str_shift ( &$str, $sep=" " ) {
   return \Phi\Tools::str_shift($str, $sep);
 }
 
-}?>
+} # end of class

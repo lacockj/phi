@@ -113,9 +113,29 @@ public function createUser ( $userID, $pass, $extras=null ) {
   );
   if ( is_array( $extras ) ) {
     foreach ( $extras as $key => $value ) {
-      $columns[] = $key;
-      $placeholders[] = "?";
-      $values[] = $value;
+      # Null
+      if ($value===null) {
+        $columns[] = $key;
+        $placeholders[] = "NULL";
+      }
+      # Boolean
+      elseif (is_bool($value)) {
+        $columns[] = $key;
+        $placeholders[] = "?";
+        $values[] = ($value ? 1 : 0);
+      }
+      # Scalar
+      elseif (is_scalar($value)) {
+        $columns[] = $key;
+        $placeholders[] = "?";
+        $values[] = $value;
+      }
+      # JSON
+      else {
+        $columns[] = $key;
+        $placeholders[] = "?";
+        $values[] = json_encode($value);
+      }
     }
   }
   $result = $this->db->pq( 'INSERT INTO `'.$this->TABLE['NAME'].'` (`'.implode('`,`', $columns).'`) VALUES ('.implode(',', $placeholders).')', $values );
@@ -443,4 +463,4 @@ public static function verifyJwt ($token, $projectName) {
   return $payload;
 }
 
-}?>
+} # end of class

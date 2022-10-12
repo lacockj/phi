@@ -31,6 +31,4 @@
     echo '</tbody></table>', PHP_EOL;
   }
 
-}
-
-?>
+} # end of class

@@ -21,30 +21,34 @@ private $allowReset = true;
 function __construct ( \mysqli_stmt $stmt, array $settings=array() ) {
   $this->num_rows = $stmt->num_rows;
 
-  # Identify the columns in the result set. #
-  $fields = array();
-  foreach ( $stmt->result_metadata()->fetch_fields() as $field) {
-    $fields[] = $field->name;
-  }
-  $result_bindings = array();
-  foreach ($fields as $fieldName) {
-    $this->row[$fieldName] = null;
-    $result_bindings[] = &$this->row[$fieldName];
-  }
-  if (! call_user_func_array( array($stmt, "bind_result"), $result_bindings )) {
-    $this->errors[] = array(
-      'operation' => 'mysqli bind_result',
-      'errno' => $this->errno,
-      'error' => $this->error
-    );
-    return false;
-  }
+  if ($stmt->result_metadata()) {
 
-  # Settings
-  if ( is_array($settings) ) {
-    if ( array_key_exists( 'fieldTypes', $settings ) && is_array( $settings['fieldTypes'] ) ) {
-      $this->fieldTypes( $settings['fieldTypes'] );
+    # Identify the columns in the result set. #
+    $fields = array();
+    foreach ( $stmt->result_metadata()->fetch_fields() as $field) {
+      $fields[] = $field->name;
     }
+    $result_bindings = array();
+    foreach ($fields as $fieldName) {
+      $this->row[$fieldName] = null;
+      $result_bindings[] = &$this->row[$fieldName];
+    }
+    if (! call_user_func_array( array($stmt, "bind_result"), $result_bindings )) {
+      $this->errors[] = array(
+        'operation' => 'mysqli bind_result',
+        'errno' => $this->errno,
+        'error' => $this->error
+      );
+      return false;
+    }
+
+    # Settings
+    if ( is_array($settings) ) {
+      if ( array_key_exists( 'fieldTypes', $settings ) && is_array( $settings['fieldTypes'] ) ) {
+        $this->fieldTypes( $settings['fieldTypes'] );
+      }
+    }
+
   }
 
   $this->stmt = $stmt;
@@ -207,4 +211,4 @@ private function _revertFields ( &$row=null ) {
   return $row;
 }
 
-} ?>
+} # end of class

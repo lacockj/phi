@@ -49,6 +49,6 @@ public static function getCSV ( $filename, $hasHeadings ) {
   fclose( $fileHandle );
   return $data;
 
-} # End of getCSV
+} # end of getCSV
 
-}?>
+} # end of class

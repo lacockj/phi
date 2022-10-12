@@ -130,7 +130,7 @@ public function run ( $uri=null, $method=null ) {
       if ( $debug ) $this->phi->log( "- wild route" );
       $here = &$here['_r_']['@'];
       if ( array_key_exists( '_v_', $here ) ) {
-        $uriParams[$here['_v_']] = $node;
+        $uriParams[$here['_v_']] = trim( urldecode( $node ) );
       }
     } else {
       if ( $debug ) $this->phi->log( "- no route" );
@@ -205,14 +205,13 @@ public function run ( $uri=null, $method=null ) {
  * @return {array} Associative array of headers.
  */
 public static function headers ( $key=null ) {
-  if ( $key === null ) {
-    return getallheaders();
-  } else {
-    $headers = getallheaders();
-    if ( is_array($headers) && is_string($key) ) {
-      if ( isset($headers[$key]) ) {
-        return $headers[$key];
-      } else {
+  if (function_exists('getallheaders')) {
+    if ( $key === null ) {
+      return getallheaders();
+    } else {
+      $headers = getallheaders();
+      if ( is_array($headers) && is_string($key) ) {
+        $headers = array_change_key_case($headers, CASE_LOWER);
         $key = strtolower($key);
         if ( isset($headers[$key]) ) {
           return $headers[$key];
@@ -371,16 +370,16 @@ public static function input () {
     } else {
       $input = $_REQUEST;
     }
+    $input = self::decode_and_trim_all( $input );
   }
-  $phpVersion = phpversion();
-  $split = explode('.', $phpVersion);
-  if ($split[0] < 5 || ($split[0] == 5 && $split[1] < 3)) {
-    # NOTE: get_magic_quotes_gpc() throws warnings in 5.4+ and deprecation errors in 7.4+
-    if ( get_magic_quotes_gpc() ) {
-      $input = self::stripslashes_deep( $input );
-    }
+  if ( function_exists('get_magic_quotes_gpc') ) {
+    $input = self::stripslashes_deep( $input );
   }
   return $input;
+}
+
+protected static function decode_and_trim_all ( $value ) {
+  return is_array($value) ? array_map('self::decode_and_trim_all', $value) : trim(urldecode($value));
 }
 
 protected static function stripslashes_deep ( $value ) {
@@ -468,4 +467,4 @@ public function files($inputName) {
   return $files;
 }
 
-}?>
+} # end of class

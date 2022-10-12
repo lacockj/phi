@@ -101,4 +101,4 @@ public function update ( $newData, $conditions=null ) {
   return $result;
 }
 
-}?>
+} # end of class
