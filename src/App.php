@@ -35,19 +35,6 @@ private static $_instance = null;
 public function __construct ( $configFile=null ) {
   static::$_instance = $this;
 
-  # Register Autoloader
-  spl_autoload_register(function($className){
-    $classFile = "/" . str_replace("\\", "/", $className) . ".php";
-    if ( __NAMESPACE__ ) $classFile = "/" . str_replace("\\", "/", __NAMESPACE__) . $classFile;
-    foreach( $this->autoloadDirs as $thisDir ) {
-      $source = $thisDir . $classFile;
-      if ( file_exists( $source ) ) {
-        include_once( $source );
-        return;
-      }
-    }
-  });
-
   # Initial Configuration (all but SESSION_LIFE can be changed later)
   if ( $configFile ) $this->configure( $configFile );
 
@@ -122,7 +109,7 @@ public function configure ( $configFile=null ) {
 
   # Read config file
   if ( is_string($configFile) ) {
-    $configFile = \Phi\Tools::pathTo( $configFile );
+    $configFile = self::pathTo( $configFile );
     if ( file_exists($configFile) ) $config = parse_ini_file( $configFile, true );
   }
   elseif (is_array($configFile)) {
@@ -148,22 +135,42 @@ public function configure ( $configFile=null ) {
         if ( is_string( $thisDir ) ) $this->addAutoloadDir( $thisDir );
       }
     }
+    $this->usePhiAutoloader();
   }
 
   # Use full, real paths
   if ( is_string( $this->ROUTES_INI ) && $this->ROUTES_INI ) {
-    $this->ROUTES_INI = \Phi\Tools::pathTo( $this->ROUTES_INI );
+    $this->ROUTES_INI = self::pathTo( $this->ROUTES_INI );
     static::$TEMP_DIR = sys_get_temp_dir() . static::$TEMP_DIR;
     if (! is_dir( static::$TEMP_DIR ) ) mkdir( static::$TEMP_DIR, 0777, true );
   }
 
 }
 
+/**
+ * Use the Phi Autoloader
+ * For when running without the Composer autoloader.
+ */
+public function usePhiAutoloader () {
+  spl_autoload_register(function($className){
+    $classFile = "/" . str_replace("\\", "/", $className) . ".php";
+    // if ( __NAMESPACE__ ) $classFile = "/" . str_replace("\\", "/", __NAMESPACE__) . $classFile;
+    foreach( $this->autoloadDirs as $thisDir ) {
+      $source = $thisDir . $classFile;
+      if ( file_exists( $source ) ) {
+        include_once( $source );
+        return;
+      }
+    }
+  });
+}
+
 public function addAutoloadDir ( $dirname, $toFront=false ) {
+  if (substr($dirname, 0, 1) === '.') $dirname = self::pathTo($dirname);
   if ( $toFront ) {
-    array_unshift( $this->autoloadDirs, \Phi\Tools::pathTo( $dirname ) );
+    array_unshift( $this->autoloadDirs, $dirname );
   } else {
-    array_push( $this->autoloadDirs, \Phi\Tools::pathTo( $dirname ) );
+    array_push( $this->autoloadDirs, $dirname );
   }
 }
 
@@ -216,6 +223,25 @@ public static function str_pop ( &$str, $sep=" " ) {
 
 public static function str_shift ( &$str, $sep=" " ) {
   return \Phi\Tools::str_shift($str, $sep);
+}
+
+/**
+ * Get Path to File
+ * 
+ * Returns absolute path to given relative file name.
+ * Takes current environment into account: HTTP server or system command.
+ * HTTP file names are relative to document root.
+ * System file names are relative to execution directory.
+ * 
+ * @param string $relativeFileName
+ * @return string
+ */
+public static function pathTo ( $relativeFileName ) {
+  if ( !empty( $_SERVER['DOCUMENT_ROOT'] ) ) {
+    return realpath( $_SERVER['DOCUMENT_ROOT'] . "/" . ltrim( $relativeFileName, "/" ) );
+  } else {
+    return realpath( "./" . ltrim( $relativeFileName, "/" ) );
+  }
 }
 
 } # end of class
