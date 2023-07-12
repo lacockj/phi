@@ -117,9 +117,12 @@ public static function json ( $data, $code=200, $reason="", $headers=null ) {
   if ( is_object( $data ) ) {
     # Object implements Iterator
     if($data instanceof \Iterator) {
+      $first = true;
       echo '[';
       foreach ( $data as $i => $row ) {
-        echo ($i!=0?",":""), json_encode( $row );
+        if ($first) $first = false;
+        else echo ',';
+        echo json_encode( $row );
       }
       echo ']';
     }
