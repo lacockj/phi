@@ -34,12 +34,23 @@ public static function method_not_allowed ( $allowedMethods ) {
   self::allow( $allowedMethods );
 }
 
+public static function security_headers () {
+  # Do not allow display in iframe.
+  // header( "X-Frame-Options: DENY" );
+  # Disable inline JavaScript.
+  // header( "X-XSS-Protection: 0" );
+  # Prevent browsers' MIME type sniffing.
+  // header( "X-Content-Type-Options: nosniff" );
+  # Limit referrer data when cross-origin.
+  // header( "Referrer-Policy: strict-origin-when-cross-origin" );
+}
+
 public static function content_type ( $type ) {
   header( "Content-type: $type" );
 }
 
 public static function content_html () {
-  header( "Content-type: text/html" );
+  header( "Content-type: text/html; charset=UTF-8" );
 }
 
 public static function content_text () {
@@ -265,14 +276,14 @@ public static function text ( $text, $code=200, $reason="" ) {
 
 public static function html ( $html="", $code=200, $reason="" ) {
   self::status( $code, $reason );
-  header('Content-type: text/html');
+  header('Content-type: text/html; charset=UTF-8');
   echo $html;
 }
 
 public static function htmlTableRows ( $data, $code=200, $text="" ) {
   if ( is_array( $data ) ) {
     self::status( $code, $reason );
-    header('Content-type: text/html');
+    header('Content-type: text/html; charset=UTF-8');
     if (! is_array($data[0]) ) $data = array( $data );
     $keys = array_keys( $data[0] );
     echo '<tr><th>' . implode('</th><th>', $keys) . '</th></tr>' . PHP_EOL;
