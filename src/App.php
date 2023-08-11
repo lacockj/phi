@@ -176,7 +176,7 @@ public function addAutoloadDir ( $dirname, $toFront=false ) {
 
 public function loadRoutes ( $routesIniFile=null, $routeBase="" ) {
   if ( $this->request === null ) $this->request = new \Phi\Request( $this );
-  if ( file_exists( $routesIniFile ) ) $this->request->loadRoutes( $routesIniFile, $routeBase );
+  if ( $routesIniFile && file_exists( $routesIniFile ) ) $this->request->loadRoutes( $routesIniFile, $routeBase );
   return $this->request;
 }
 

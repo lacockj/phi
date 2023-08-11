@@ -1,45 +1,23 @@
-<?php namespace Phi; class Table {
+<?php namespace Phi; class Table implements \Countable, \Iterator, \JsonSerializable {
 
 public $lastError = "";
 
 protected $phi;
 protected $tablename;
+
 protected $fields;
-protected $fieldTypes = array(
-  'bool' => array(),
-  'json' => array(),
-  'exclude' => array()
-);
 
-protected $dbFieldJsTypes = array(
-  'INTEGER'    => 'number',
-  'INT'        => 'number',
-  'SMALLINT'   => 'number',
-  'TINYINT'    => 'number',
-  'MEDIUMINT'  => 'number',
-  'BIGINT'     => 'number',
-  'DECIMAL'    => 'number',
-  'NUMERIC'    => 'number',
-  'FLOAT'      => 'number',
-  'DOUBLE'     => 'number',
-  'BIT'        => 'number',
-  'DATE'       => 'date',
-  'DATETIME'   => 'date',
-  'TIMESTAMP'  => 'date',
-  'TIME'       => 'date',
-  'CHAR'       => 'string',
-  'VARCHAR'    => 'string',
-  'TEXT'       => 'string',
-  'TINYTEXT'   => 'string',
-  'MEDIUMTEXT' => 'string',
-  'LONGTEXT'   => 'string',
-  'ENUM'       => 'string',
-  'BLOB'       => 'binary',
-  'TINYBLOB'   => 'binary',
-  'MEDIUMBLOB' => 'binary',
-  'LONGBLOB'   => 'binary'
-);
+protected $rows = null;
+protected $changed = null;
 
+protected $keysAllowedToRead = ['tablename','fields','rows','changed'];
+
+/**
+ * Class Constructor
+ * 
+ * @param string $tablename
+ * @return Phi\Table
+ */
 function __construct ( $tablename ) {
   $this->phi = \Phi\App::instance();
   $this->tablename = str_replace( "`", "", $tablename );
@@ -52,17 +30,10 @@ function __construct ( $tablename ) {
  * @return mixed - The property's value, or null if not found.
  */
 function __get ($key) {
-  switch ($key) {
-    # Allowed to Read
-    case 'tablename':
-    case 'fields':
-      return $this->{$key};
-    
-    default:
-      if (isset($this->{$key})) {
-        return $this->{$key};
-      }
+  if (in_array($key, $this->keysAllowedToRead)) {
+    return $this->{$key};
   }
+  return null;
 }
 
 /**
@@ -90,15 +61,8 @@ function __set ($key, $value) {
 public function describe () {
   if ($this->fields) return $this->fields;
   $result = $this->phi->db->pq("DESCRIBE `{$this->tablename}`");
-  $fields = $result->fetch_all();
-  $this->fields = [];
-  foreach ($fields as $field) {
-    preg_match('/^\w+/', $field['Type'], $matches);
-    $type = strtoupper($matches[0]);
-    $field['JsType'] = $this->dbFieldJsTypes[$type];
-    $field['Requried'] = (bool)($field['Null'] === 'NO' && $field['Default'] === null);
-    $this->fields[] = $field;
-  }
+  $this->fields = $result->fetch_all();
+  $result->close();
   return $this->fields;
 }
 
@@ -107,6 +71,7 @@ public function describe () {
  * 
  * @param array $opts['select']   - (optional) What columns of data to return.
  * @param array $opts['where']    - (optional) What conditions rows must meet.
+ * @param array $opts['group_by'] - (optional) Group results by like values in given columns.
  * @param array $opts['order_by'] - (optional) Order results by (key) column -> (value) direction.
  * @return array|null
  */
@@ -116,6 +81,7 @@ public function select ($opts) {
   $select    = [];
   $where     = [];
   $params    = [];
+  $group_by  = [];
   $order_by  = [];
 
   if (is_array($opts)) {
@@ -142,6 +108,14 @@ public function select ($opts) {
         }
       }
     }
+    # GROUP BY
+    if (array_key_exists('group_by', $opts)) {
+      if (is_scalar($opts['group_by'])) $opts['group_by'] = [$opts['group_by']];
+      foreach ($opts['group_by'] as $col) {
+        $col = str_replace('`', '', $col);
+        $group_by[] = "`$col`";
+      }
+    }
     # ORDER BY
     if (array_key_exists('order_by', $opts)) {
       foreach ($opts['order_by'] as $key=>$value) {
@@ -154,6 +128,9 @@ public function select ($opts) {
   $select_expr = (count($select)) ? ('`'.implode('`,`', $select).'`') : '*';
   $where_condition = (count($where)) ? implode(' AND ', $where) : '1';
   $query = sprintf($format, $select_expr, $tablename, $where_condition);
+  if (count($group_by)) {
+    $query .= ' GROUP BY ' . implode(',', $group_by);
+  }
   if (count($order_by)) {
     $query .= ' ORDER BY ' . implode(',', $order_by);
   }
@@ -239,6 +216,80 @@ public function update ( $newData, $conditions=null ) {
     return false;
   }
   return $result;
+}
+
+/**
+ * Load Rows
+ * 
+ * @param array $where - (optional) What conditions rows must meet.
+ * @return array|null
+ */
+public function load ($where=null) {
+  # Compile Options
+  $selectOpts = [];
+  if (is_array($where)) {
+    $selectOpts['where'] = $where;
+  }
+  $tableDescription = $this->describe();
+  # Read Rows
+  $selected = $this->select($selectOpts);
+  $rows = [];
+  $changed = [];
+  if (is_array($selected)) {
+    if (count($selected)) {
+      $colCount = count($selected[0]);
+      foreach ($selected as $row) {
+        $rows[] = new \Phi\TableRow($row, $tableDescription);
+        $changed[] = array_fill(0, $colCount, false);
+      }
+    }
+  }
+  # Save to Instance
+  $this->rows = $rows;
+  $this->changed = $changed;
+  # Return Instance for Chaining
+  return $this;
+}
+
+/**
+ * Check If Rows Are Loaded
+ * 
+ * @return bool - If a table is loaded or not.
+ */
+public function isLoaded () {
+  return (is_array($this->rows) && count($this->rows));
+}
+
+####################################
+# Interface Implementation Methods #
+####################################
+
+# Countable #
+public function count(): int {
+  return count($this->rows);
+}
+
+# Iterator #
+private $iteratorPosition;
+public function current(): mixed {
+  return $this->rows[$this->iteratorPosition];
+}
+public function key(): mixed {
+  return $this->iteratorPosition;
+}
+public function next(): void {
+  ++$this->iteratorPosition;
+}
+public function rewind(): void {
+  $this->iteratorPosition = 0;
+}
+public function valid(): bool {
+  return $this->isLoaded() && $this->iteratorPosition >= 0 && $this->iteratorPosition < count($this->rows);
+}
+
+# JsonSerializable #
+public function jsonSerialize(): mixed {
+  return $this->isLoaded() ? $this->rows : null;
 }
 
 } # end of class
