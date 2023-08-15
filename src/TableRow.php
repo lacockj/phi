@@ -1,6 +1,10 @@
-<?php namespace Phi; class TableRow implements \ArrayAccess, \Iterator, \JsonSerializable {
+<?php namespace Phi; class TableRow implements \ArrayAccess, \JsonSerializable {
 
+/** @var array[] $fields - Definitions for each field in the table row. */
 protected $fields = [];
+/** @var string $priKey - The row's primary key fieldname. */
+protected $priKey = null;
+
 protected $dbFieldPhpTypes = array(
   'INTEGER'    => 'int',
   'INT'        => 'int',
@@ -121,8 +125,10 @@ function __set ($key, $value) {
  */
 public function defineFields ($tableDefinition) {
   $fields = [];
+  $priKey = null;
   if (is_array($tableDefinition)) {
     foreach ($tableDefinition as $field) {
+      if ($field['Key'] === 'PRI') $priKey = $field['Field'];
       preg_match('/^\w+/', $field['Type'], $matches);
       $type = strtoupper($matches[0]);
       $field['PhpType']  = $this->dbFieldPhpTypes[$type];
@@ -132,6 +138,7 @@ public function defineFields ($tableDefinition) {
     }  
   }
   $this->fields = $fields;
+  $this->priKey = $priKey;
 }
 
 /**
@@ -144,10 +151,10 @@ public function set ($row) {
   $data = [];
   $changed = [];
   $valid = [];
-  $isChanged = ($this->data === null ? false : true);
   foreach ($row as $key=>$value) {
     if (array_key_exists($key, $this->fields)) {
       $field = $this->fields[$key];
+      # Match PHP to SQL data type.
       switch ($field['PhpType']) {
         case 'int':
           if (is_int($value) || is_numeric($value)) {
@@ -193,7 +200,7 @@ public function set ($row) {
       $isValid = null;
     }
     $data[$key]    = $value;
-    $changed[$key] = $isChanged;
+    $changed[$key] = !( $this->data === null || $value === $this->data[$key] );
     $valid[$key]   = $isValid;
   }
   if ($this->data === null) {
@@ -226,6 +233,28 @@ public function getRowStatus () {
 }
 
 /**
+ * Check If All Values Are Valid
+ * 
+ * @return bool
+ */
+public function isValid () {
+  return array_sum($this->valid) === count($this->valid);
+}
+
+/**
+ * Check If Row Values Match Given Values
+ * 
+ * @param array $where - Conditions to match as key=>value pairs.
+ * @return bool
+ */
+public function matches ($where) {
+  foreach ($where as $key=>$value) {
+    if (!(isset($this->data[$key]) && $value === $this->data[$key])) return false;
+  }
+  return true;
+}
+
+/**
  * Check If Any Values Are Changed
  * 
  * @return bool
@@ -235,12 +264,12 @@ public function isChanged () {
 }
 
 /**
- * Check If All Values Are Valid
+ * Check If Primary Key Changed
  * 
  * @return bool
  */
-public function isValid () {
-  return array_sum($this->valid) === count($this->valid);
+public function priKeyChanged () {
+  return $this->changed[$this->priKey];
 }
 
 /**
@@ -277,24 +306,6 @@ public function offsetSet(mixed $offset, mixed $value): void {
 }
 public function offsetUnset(mixed $offset): void {
   $this->set([$offset => null]);
-}
-
-# Iterator #
-private $iteratorPosition;
-public function current(): mixed {
-  return $this->rows[$this->iteratorPosition];
-}
-public function key(): mixed {
-  return $this->iteratorPosition;
-}
-public function next(): void {
-  ++$this->iteratorPosition;
-}
-public function rewind(): void {
-  $this->iteratorPosition = 0;
-}
-public function valid(): bool {
-  return $this->isLoaded() && $this->iteratorPosition >= 0 && $this->iteratorPosition < count($this->rows);
 }
 
 # JsonSerializable #

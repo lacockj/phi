@@ -6,11 +6,11 @@ protected $phi;
 protected $tablename;
 
 protected $fields;
+protected $priKey;
 
 protected $rows = null;
-protected $changed = null;
 
-protected $keysAllowedToRead = ['tablename','fields','rows','changed'];
+protected $keysAllowedToRead = ['tablename','fields','priKey','rows'];
 
 /**
  * Class Constructor
@@ -63,6 +63,9 @@ public function describe () {
   $result = $this->phi->db->pq("DESCRIBE `{$this->tablename}`");
   $this->fields = $result->fetch_all();
   $result->close();
+  foreach ($this->fields as $field) {
+    if ($field['Key'] === 'PRI') $this->priKey = $field['Field'];
+  }
   return $this->fields;
 }
 
@@ -222,7 +225,7 @@ public function update ( $newData, $conditions=null ) {
  * Load Rows
  * 
  * @param array $where - (optional) What conditions rows must meet.
- * @return array|null
+ * @return \Phi\Table
  */
 public function load ($where=null) {
   # Compile Options
@@ -234,19 +237,16 @@ public function load ($where=null) {
   # Read Rows
   $selected = $this->select($selectOpts);
   $rows = [];
-  $changed = [];
   if (is_array($selected)) {
     if (count($selected)) {
       $colCount = count($selected[0]);
       foreach ($selected as $row) {
         $rows[] = new \Phi\TableRow($row, $tableDescription);
-        $changed[] = array_fill(0, $colCount, false);
       }
     }
   }
   # Save to Instance
   $this->rows = $rows;
-  $this->changed = $changed;
   # Return Instance for Chaining
   return $this;
 }
@@ -258,6 +258,89 @@ public function load ($where=null) {
  */
 public function isLoaded () {
   return (is_array($this->rows) && count($this->rows));
+}
+
+/**
+ * Get Row
+ * Get first row matching all given criteria.
+ * 
+ * @param array $where - Conditions to match as key=>value pairs.
+ * @return \Phi\TableRow|null
+ */
+public function getRow ($where) {
+  if ($this->isLoaded()) {
+    foreach ($this->rows as $row) {
+      if ($row->matches($where)) return $row;
+    }
+  }
+  return null;
+}
+
+/**
+ * Get Changes
+ * Get first row matching all given criteria.
+ * 
+ * @param array $where - Conditions to match as key=>value pairs.
+ * @return \Phi\TableRow|null
+ */
+public function getChanges () {
+  $rowChanges = [];
+  if ($this->isLoaded()) {
+    foreach ($this->rows as $row) {
+      // if ($row->isChanged()) {
+        $rowChanges[] = $row->getChanges();
+      // }
+    }
+  }
+  return $rowChanges;
+}
+
+/**
+ * Save Changed Rows
+ * 
+ * @return int - Number of rows affected.
+ */
+public function save () {
+  $db = $this->phi->db;
+  $affected = 0;
+  $db->query('START TRANSACTION');
+  try {
+    # Queue up the changes.
+    foreach ($this->rows as $row) {
+      if ($row->priKeyChanged()) {
+        throw new \Exception("Cannot save a row after changing the Primary Key!", 1);
+      }
+      if ($row->isChanged()) {
+        $assignment_list = [];
+        $queryParams = [];
+        $changes = $row->getChanges();
+        foreach ($changes as $key => $value) {
+          $assignment_list[] = "`$key`=?";
+          $queryParams[] = $value;
+        }
+        $priKey = $this->priKey;
+        $where_condition = "`{$priKey}`=?";
+        $queryParams[] = $row[$priKey];
+        $query = sprintf(
+          'UPDATE %s SET %s WHERE %s',
+          $this->tablename,
+          implode(',', $assignment_list),
+          $where_condition
+        );
+        $db->pq($query, $queryParams);
+        $affected++;
+      }
+    }
+    # All good? Commit changes.
+    $db->query('COMMIT');
+  }
+  # If there's an error, rollback changes.
+  catch (\Throwable $th) {
+    // $db->query('ROLLBACK');
+    throw $th;
+  }
+  # Return Instance for Chaining
+  return $affected;
 }
 
 ####################################

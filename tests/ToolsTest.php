@@ -68,6 +68,22 @@ final class ToolsTest extends TestCase {
 
   }
 
+  public function testArrayIsListOnList() {
+
+    $a = ['a', 'b', 'c'];
+
+    $this->assertTrue( Tools::array_is_list( $a ) );
+
+  }
+
+  public function testArrayIsListOnAssoc() {
+
+    $a = ['a' => 'a', 'b' => 'b', 'c' => 'c'];
+
+    $this->assertFalse( Tools::array_is_list( $a ) );
+
+  }
+
   public function testAllSet() {
 
     $uriParams = array(

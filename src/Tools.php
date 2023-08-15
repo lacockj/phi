@@ -102,6 +102,24 @@ public static function array_copy ( array $original ) {
 }
 
 /**
+ * Array Is List
+ * 
+ * Templorary PHP 7 polyfill for PHP 8's array_is_list.
+ * 
+ * @param array $a
+ * @return bool
+ */
+public static function array_is_list ( array $a ) {
+  $keys = array_keys($a);
+  $i = 0;
+  foreach ($keys as $key) {
+    if ($key !== $i) return false;
+    $i++;
+  }
+  return true;
+}
+
+/**
  * All Set?
  * 
  * @param array The array to test.
