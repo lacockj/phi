@@ -62,31 +62,31 @@ function __destruct () {
 
 # Iterator Interface Methods #
 
-function rewind() {
+function rewind(): void {
   $this->position = 0;
 }
 
-function next() {
+function next(): void {
   ++$this->position;
 }
 
-function valid() {
+function valid(): bool {
   return (bool)( $this->stmt->fetch() );
 }
 
-function current() {
+function current(): mixed {
   $this->_revertFields();
   return $this->row;
 }
 
-function key() {
+function key(): mixed {
   return $this->position;
 }
 
 
 # JsonSerializable Interface Methods #
 
-function jsonSerialize() {
+function jsonSerialize(): mixed {
   $this->stmt->store_result();
   $allRows = array();
   while ( $this->stmt->fetch() ) {
