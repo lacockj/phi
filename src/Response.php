@@ -126,51 +126,71 @@ public static function json ( $data, $code=200, $reason="", $headers=null ) {
     ini_set( 'serialize_precision', -1 );
   }
   if ( is_object( $data ) ) {
-    # Object implements Iterator
-    if($data instanceof \Iterator) {
-      $first = true;
+
+    # Object is Phi\DataStream
+    if($data instanceof \Phi\Datastream) {
+      ob_start( null, 1048576 );
       echo '[';
       foreach ( $data as $i => $row ) {
-        if ($first) $first = false;
-        else echo ',';
+        if ( $i != 0 ) echo ",";
         echo json_encode( $row );
       }
       echo ']';
+      ob_end_flush();
     }
-    # SQL Result
-    else {
-      switch ( get_class( $data ) ) {
 
-        case "Phi\Datastream":
-          ob_start( null, 1048576 );
-          echo '[';
-          foreach ( $data as $i => $row ) {
-            if ( $i != 0 ) echo ",";
-            echo json_encode( $row );
-          }
-          echo ']';
-          ob_end_flush();
-          break;
+    # Object is mysqli_result
+    elseif($data instanceof \mysqli_result) {
+      ob_start( null, 1048576 );
+      echo '[';
+      $i = 0;
+      while ( $row = $data->fetch_assoc() ) {
+        if ( $i != 0 ) echo ",";
+        echo json_encode( $row );
+        $i++;
+      }
+      echo ']';
+      ob_end_flush();
+    }
 
-        case "mysqli_result":
-          ob_start( null, 1048576 );
-          echo '[';
-          $i = 0;
-          while ( $row = $data->fetch_assoc() ) {
-            if ( $i != 0 ) echo ",";
-            echo json_encode( $row );
-            $i++;
-          }
-          echo ']';
-          ob_end_flush();
-          break;
+    # Object implements JsonSerializable
+    elseif($data instanceof \JsonSerializable) {
+      echo json_encode($data);
+    }
 
-        default:
-          if (method_exists($data, 'jsonSerialize')) {
-            echo json_encode($data);
-          }
+    # Object implements Iterator
+    elseif($data instanceof \Iterator) {
+      if (\Phi\Tools::is_list($data)) {
+        $first = true;
+        echo '[';
+        foreach ( $data as $i => $row ) {
+          if ($first) $first = false;
+          else echo ',';
+          echo json_encode( $row );
+        }
+        echo ']';
+      } else {
+        $first = true;
+        echo '{';
+        foreach ( $data as $key => $row ) {
+          if ($first) $first = false;
+          else echo ',';
+          echo "\"$key\":" . json_encode( $row );
+        }
+        echo '}';
       }
     }
+
+    # Unhandled Object
+    else {
+      try {
+        echo json_encode($data);
+      } catch (\Throwable $th) {
+        echo '"[Unserializable Object]"';
+        throw $th;
+      }
+    }
+
   } else {
     echo json_encode( $data );
   }

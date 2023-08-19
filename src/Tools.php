@@ -120,6 +120,23 @@ public static function array_is_list ( array $a ) {
 }
 
 /**
+ * Is List
+ * 
+ * Like array_is_list, but also works for \Iterator implementations.
+ * 
+ * @param array|\Iterator $subject
+ * @return bool
+ */
+public static function is_list ( $subject ) {
+  $i = 0;
+  foreach ($subject as $key=>$value) {
+    if ($key !== $i) return false;
+    $i++;
+  }
+  return true;
+}
+
+/**
  * All Set?
  * 
  * @param array The array to test.
