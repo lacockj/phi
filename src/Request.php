@@ -358,7 +358,7 @@ public static function path ( $uri=null ) {
 public static function input () {
   $method = $_SERVER['REQUEST_METHOD'];
   $contentType = self::headers('Content-Type');
-  if ( strpos( $contentType, "application/json" ) !== false
+  if ( $contentType && strpos( $contentType, "application/json" ) !== false
       || strpos( $contentType, "application/geo+json" ) !== false
       || strpos( $contentType,  "application/merge-patch+json" ) !== false ) {
     $input = json_decode( file_get_contents("php://input"), true );
@@ -379,11 +379,11 @@ public static function input () {
 }
 
 protected static function decode_and_trim_all ( $value ) {
-  return is_array($value) ? array_map('self::decode_and_trim_all', $value) : trim(urldecode($value));
+  return is_array($value) ? array_map(['Phi\Request', 'decode_and_trim_all'], $value) : trim(urldecode($value));
 }
 
 protected static function stripslashes_deep ( $value ) {
-  return is_array($value) ? array_map('self::stripslashes_deep', $value) : stripslashes($value);
+  return is_array($value) ? array_map(['Phi\Request', 'stripslashes_deep'], $value) : stripslashes($value);
 }
 
 public static function not_modified ( $mtime, $etag ) {
