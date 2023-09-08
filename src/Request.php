@@ -11,6 +11,8 @@ private $routes = null;
 private $allowedMethods = array( 'GET','POST','PATCH','DELETE','PUT','HEAD','OPTIONS' );
 private $defaultRouteMethod = 'GET';
 
+private $_uriParams = [];
+
 public function __construct ($phi) {
   $this->phi = $phi;
   self::loadRoutes( $phi->routesINI, $phi->routeBase );
@@ -117,7 +119,7 @@ public function run ( $uri=null, $method=null ) {
     $this->phi->log_json( $path );
     $this->phi->log( "Method: $method" );
   }
-  $uriParams = array();
+  $uriParams = [];
   $here = &$this->routes;
 
   # Request Path Nodes #
@@ -139,6 +141,7 @@ public function run ( $uri=null, $method=null ) {
       return false;
     }
   }
+  $this->_uriParams = $uriParams;
 
   # Missing Handlers? #
   if ( ! array_key_exists('_m_', $here) ) {
@@ -335,6 +338,14 @@ public static function method () {
  */
 public static function uri () {
   return $_SERVER['REQUEST_URI'];
+}
+
+/**
+ * Get the URI parameters.
+ * @return {array} Associative array of keys (defined in routes.ini) and values (from the corresponding request URI segments).
+ */
+public static function uriParams () {
+  return $this->_uriParams;
 }
 
 /**

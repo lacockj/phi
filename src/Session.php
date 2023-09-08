@@ -58,7 +58,22 @@ public function clear () {
   $this->_changed = true;
 }
 
-public function offsetSet( $offset, $value ) {
+public function toArray () {
+  return $this->_data;
+}
+
+####################################
+# Interface Implementation Methods #
+####################################
+
+# ArrayAccess #
+public function offsetExists ( $offset ): bool {
+  return isset( $this->_data[$offset] );
+}
+public function offsetGet ( $offset ): mixed {
+  return isset( $this->_data[$offset] ) ? $this->_data[$offset] : null;
+}
+public function offsetSet( $offset, $value ): void {
   if ( is_null($offset) ) {
     $this->_data[] = $value;
   } else {
@@ -66,22 +81,9 @@ public function offsetSet( $offset, $value ) {
   }
   $this->_changed = true;
 }
-
-public function offsetExists ( $offset ) {
-  return isset( $this->_data[$offset] );
-}
-
-public function offsetUnset ( $offset ) {
+public function offsetUnset ( $offset ): void {
   unset( $this->_data[$offset] );
   $this->_changed = true;
-}
-
-public function offsetGet ( $offset ) {
-  return isset( $this->_data[$offset] ) ? $this->_data[$offset] : null;
-}
-
-public function toArray () {
-  return $this->_data;
 }
 
 } # end of class

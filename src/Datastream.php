@@ -60,47 +60,6 @@ function __destruct () {
 }
 
 
-# Iterator Interface Methods #
-
-function rewind(): void {
-  $this->position = 0;
-}
-
-function next(): void {
-  ++$this->position;
-}
-
-function valid(): bool {
-  return (bool)( $this->stmt->fetch() );
-}
-
-function current(): mixed {
-  $this->_revertFields();
-  return $this->row;
-}
-
-function key(): mixed {
-  return $this->position;
-}
-
-
-# JsonSerializable Interface Methods #
-
-function jsonSerialize(): mixed {
-  $this->stmt->store_result();
-  $allRows = array();
-  while ( $this->stmt->fetch() ) {
-    $thisRow = array();
-    foreach ( $this->row as $key => $value ) {
-      $thisRow[$key] = $value;
-    }
-    $allRows[] = $this->_revertFields( $thisRow );
-  }
-  $this->stmt->data_seek( 0 );
-  return $allRows;
-}
-
-
 # MySQLi Statement-like Methods #
 
 public function close () {
@@ -209,6 +168,43 @@ private function _revertFields ( &$row=null ) {
       unset($row[$field]);
   }
   return $row;
+}
+
+####################################
+# Interface Implementation Methods #
+####################################
+
+# Iterator  #
+function current(): mixed {
+  $this->_revertFields();
+  return $this->row;
+}
+function key(): mixed {
+  return $this->position;
+}
+function next(): void {
+  ++$this->position;
+}
+function rewind(): void {
+  $this->position = 0;
+}
+function valid(): bool {
+  return (bool)( $this->stmt->fetch() );
+}
+
+# JsonSerializable #
+function jsonSerialize(): mixed {
+  $this->stmt->store_result();
+  $allRows = array();
+  while ( $this->stmt->fetch() ) {
+    $thisRow = array();
+    foreach ( $this->row as $key => $value ) {
+      $thisRow[$key] = $value;
+    }
+    $allRows[] = $this->_revertFields( $thisRow );
+  }
+  $this->stmt->data_seek( 0 );
+  return $allRows;
 }
 
 } # end of class

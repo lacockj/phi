@@ -59,39 +59,6 @@ function __destruct () {
 }
 
 
-# Iterator Interface Methods #
-
-function rewind() {
-  fseek($this->fh, 0);
-  $this->position = -1;
-}
-
-function next() {
-  // ++$this->position;
-}
-
-function valid() {
-  ++$this->position;
-  switch ($this->filetype) {
-    case 'text/csv':
-      $this->readCsv();
-      break;
-    case 'application/x-ndjson':
-      $this->readNdjson();
-      break;
-  }
-  return is_array($this->row);
-}
-
-function current() {
-  return $this->row;
-}
-
-function key() {
-  return $this->position;
-}
-
-
 # Readers #
 
 public function read () {
@@ -134,5 +101,35 @@ private function readNdjson () {
   return $this->row;
 }
 
+####################################
+# Interface Implementation Methods #
+####################################
+
+# Iterator #
+function current(): mixed {
+  return $this->row;
+}
+function key(): mixed {
+  return $this->position;
+}
+function next(): void {
+  // ++$this->position;
+}
+function rewind(): void {
+  fseek($this->fh, 0);
+  $this->position = -1;
+}
+function valid(): bool {
+  ++$this->position;
+  switch ($this->filetype) {
+    case 'text/csv':
+      $this->readCsv();
+      break;
+    case 'application/x-ndjson':
+      $this->readNdjson();
+      break;
+  }
+  return is_array($this->row);
+}
 
 } # end of class
