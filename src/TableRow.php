@@ -295,21 +295,21 @@ public function getChanges () {
 ####################################
 
 # ArrayAccess #
-public function offsetExists(mixed $offset): bool {
+public function offsetExists(mixed $offset) {
   return isset($this->data[$offset]);
 }
-public function offsetGet(mixed $offset): mixed {
+public function offsetGet(mixed $offset) {
   return isset($this->data[$offset]) ? $this->data[$offset] : null;
 }
-public function offsetSet(mixed $offset, mixed $value): void {
+public function offsetSet(mixed $offset, mixed $value) {
   $this->set([$offset => $value]);
 }
-public function offsetUnset(mixed $offset): void {
+public function offsetUnset(mixed $offset) {
   $this->set([$offset => null]);
 }
 
 # JsonSerializable #
-public function jsonSerialize(): mixed {
+public function jsonSerialize() {
   return $this->data;
 }
 

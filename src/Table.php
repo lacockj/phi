@@ -348,30 +348,30 @@ public function save () {
 ####################################
 
 # Countable #
-public function count(): int {
+public function count() {
   return count($this->rows);
 }
 
 # Iterator #
 private $iteratorPosition;
-public function current(): mixed {
+public function current() {
   return $this->rows[$this->iteratorPosition];
 }
-public function key(): mixed {
+public function key() {
   return $this->iteratorPosition;
 }
-public function next(): void {
+public function next() {
   ++$this->iteratorPosition;
 }
-public function rewind(): void {
+public function rewind() {
   $this->iteratorPosition = 0;
 }
-public function valid(): bool {
+public function valid() {
   return $this->isLoaded() && $this->iteratorPosition >= 0 && $this->iteratorPosition < count($this->rows);
 }
 
 # JsonSerializable #
-public function jsonSerialize(): mixed {
+public function jsonSerialize() {
   return $this->isLoaded() ? $this->rows : null;
 }
 

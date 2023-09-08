@@ -175,25 +175,25 @@ private function _revertFields ( &$row=null ) {
 ####################################
 
 # Iterator  #
-function current(): mixed {
+function current() {
   $this->_revertFields();
   return $this->row;
 }
-function key(): mixed {
+function key() {
   return $this->position;
 }
-function next(): void {
+function next() {
   ++$this->position;
 }
-function rewind(): void {
+function rewind() {
   $this->position = 0;
 }
-function valid(): bool {
+function valid() {
   return (bool)( $this->stmt->fetch() );
 }
 
 # JsonSerializable #
-function jsonSerialize(): mixed {
+function jsonSerialize() {
   $this->stmt->store_result();
   $allRows = array();
   while ( $this->stmt->fetch() ) {

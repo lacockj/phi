@@ -106,20 +106,20 @@ private function readNdjson () {
 ####################################
 
 # Iterator #
-function current(): mixed {
+function current() {
   return $this->row;
 }
-function key(): mixed {
+function key() {
   return $this->position;
 }
-function next(): void {
+function next() {
   // ++$this->position;
 }
-function rewind(): void {
+function rewind() {
   fseek($this->fh, 0);
   $this->position = -1;
 }
-function valid(): bool {
+function valid() {
   ++$this->position;
   switch ($this->filetype) {
     case 'text/csv':

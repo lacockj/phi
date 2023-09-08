@@ -67,13 +67,13 @@ public function toArray () {
 ####################################
 
 # ArrayAccess #
-public function offsetExists ( $offset ): bool {
+public function offsetExists ( $offset ) {
   return isset( $this->_data[$offset] );
 }
-public function offsetGet ( $offset ): mixed {
+public function offsetGet ( $offset ) {
   return isset( $this->_data[$offset] ) ? $this->_data[$offset] : null;
 }
-public function offsetSet( $offset, $value ): void {
+public function offsetSet( $offset, $value ) {
   if ( is_null($offset) ) {
     $this->_data[] = $value;
   } else {
@@ -81,7 +81,7 @@ public function offsetSet( $offset, $value ): void {
   }
   $this->_changed = true;
 }
-public function offsetUnset ( $offset ): void {
+public function offsetUnset ( $offset ) {
   unset( $this->_data[$offset] );
   $this->_changed = true;
 }
